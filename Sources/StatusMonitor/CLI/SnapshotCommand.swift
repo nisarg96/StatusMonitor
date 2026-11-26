@@ -78,6 +78,11 @@ enum SnapshotCommand {
         try write(capture(popoverWindow(root, appearance: .aqua)), "popover-light.png", directory)
         try write(capture(popoverWindow(root, appearance: .darkAqua)), "popover-dark.png", directory)
 
+        for (name, appearanceName) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
+            try write(capture(popoverWindow(root, appearance: appearanceName, cleanOnly: true)),
+                      "card-memory-clean-\(name).png", directory)
+        }
+
         for item in cardItems {
             let name = item.rawValue
             try write(capture(popoverWindow(root, appearance: .aqua, only: item)),
@@ -157,10 +162,10 @@ enum SnapshotCommand {
      - Returns: The window, sized to the popover's fitted height.
      */
     private static func popoverWindow(
-        _ root: CompositionRoot, appearance: NSAppearance.Name, only: MetricItemID? = nil
+        _ root: CompositionRoot, appearance: NSAppearance.Name, only: MetricItemID? = nil, cleanOnly: Bool = false
     ) -> NSWindow {
         let view = PopoverView(
-            settings: root.settings, monitor: root.monitor, only: only, openSettings: {},
+            settings: root.settings, monitor: root.monitor, only: only, cleanOnly: cleanOnly, openSettings: {},
             memoryClean: root.memoryClean, speedTest: root.speedTest
         )
         let hosting = NSHostingView(rootView: view)
