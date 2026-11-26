@@ -4,6 +4,7 @@ import Foundation
 public final class UserDefaultsRemediationStore {
     enum Key {
         static let lastCleanAt = "remediation.lastCleanAt"
+        static let purgePermissionPromptDeclined = "remediation.purgePermissionPromptDeclined"
     }
 
     private let defaults: UserDefaults
@@ -17,6 +18,12 @@ public final class UserDefaultsRemediationStore {
     public var lastCleanAt: Double? {
         get { defaults.object(forKey: Key.lastCleanAt) as? Double }
         set { set(newValue, forKey: Key.lastCleanAt) }
+    }
+
+    /// True once the user chose "Not now" on the launch-time purge permission prompt. Settings still offers Install.
+    public var purgePermissionPromptDeclined: Bool {
+        get { defaults.bool(forKey: Key.purgePermissionPromptDeclined) }
+        set { defaults.set(newValue, forKey: Key.purgePermissionPromptDeclined) }
     }
 
     private func set(_ value: Double?, forKey key: String) {
