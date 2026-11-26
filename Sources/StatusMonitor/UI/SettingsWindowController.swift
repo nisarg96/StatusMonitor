@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import StatusMonitorCore
 import SwiftUI
 
@@ -16,6 +17,8 @@ final class SettingsWindowController {
     private let memoryClean: MemoryCleanViewModel
     private let speedTest: SpeedTestViewModel
     private var window: NSWindow?
+    /// Keeps the window's appearance in step with the Appearance setting.
+    private var appearanceCancellable: AnyCancellable?
     private let navigation = SettingsNavigation()
 
     /**
@@ -55,6 +58,10 @@ final class SettingsWindowController {
             newWindow.setContentSize(NSSize(width: 960, height: 680))
             newWindow.center()
             window = newWindow
+            appearanceCancellable = settings.$settings
+                .map(\.appearance)
+                .removeDuplicates()
+                .sink { [weak newWindow] mode in newWindow?.appearance = mode.nsAppearance }
         }
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
