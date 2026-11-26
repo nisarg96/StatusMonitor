@@ -14,14 +14,18 @@ CPU 8%  ↓ 2.1 MB/s  ↑ 0.4 MB/s
 
 ### Cards
 
-Each card is also rendered on its own, in light and dark. Light versions are shown here.
+Each card is also rendered on its own, in light and dark.
 
-| Card | Light | Card | Light |
-|---|---|---|---|
-| CPU and memory | ![CPU and memory card](docs/images/card-cpu-light.png) | GPU | ![GPU card](docs/images/card-gpu-light.png) |
-| Memory pressure | ![Memory pressure card](docs/images/card-memoryPressure-light.png) | Disk I/O | ![Disk I/O card](docs/images/card-disk-light.png) |
-| Battery | ![Battery card](docs/images/card-battery-light.png) | Temperature and fans | ![Temperature and fans card](docs/images/card-thermal-light.png) |
-| Network and speed test | ![Network and speed test card](docs/images/card-network-light.png) | Memory Clean | ![Memory Clean card](docs/images/card-memory-clean-light.png) |
+| Card | Light | Dark |
+|---|---|---|
+| CPU and memory | ![CPU and memory card, light](docs/images/card-cpu-light.png) | ![CPU and memory card, dark](docs/images/card-cpu-dark.png) |
+| GPU | ![GPU card, light](docs/images/card-gpu-light.png) | ![GPU card, dark](docs/images/card-gpu-dark.png) |
+| Memory pressure | ![Memory pressure card, light](docs/images/card-memoryPressure-light.png) | ![Memory pressure card, dark](docs/images/card-memoryPressure-dark.png) |
+| Disk I/O | ![Disk I/O card, light](docs/images/card-disk-light.png) | ![Disk I/O card, dark](docs/images/card-disk-dark.png) |
+| Battery | ![Battery card, light](docs/images/card-battery-light.png) | ![Battery card, dark](docs/images/card-battery-dark.png) |
+| Temperature and fans | ![Temperature and fans card, light](docs/images/card-thermal-light.png) | ![Temperature and fans card, dark](docs/images/card-thermal-dark.png) |
+| Network and speed test | ![Network and speed test card, light](docs/images/card-network-light.png) | ![Network and speed test card, dark](docs/images/card-network-dark.png) |
+| Memory Clean | ![Memory Clean card, light](docs/images/card-memory-clean-light.png) | ![Memory Clean card, dark](docs/images/card-memory-clean-dark.png) |
 
 ![Settings: menu bar items](docs/images/settings-menu-bar-items.png)
 
