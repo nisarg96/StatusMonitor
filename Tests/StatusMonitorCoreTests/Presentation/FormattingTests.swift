@@ -40,7 +40,8 @@ struct StatusTitleFormatterTests {
 
     @Test("CPU and network segments, joined with a middle dot")
     func cpuAndNetwork() {
-        // By default the bar shows CPU, RAM, GPU and network. Memory pressure, disk, battery and temperature start hidden.
+        // By default the bar shows CPU, RAM, GPU and network. Memory pressure, disk, battery and temperature start
+        // hidden.
         let title = StatusTitleFormatter.title(for: base, settings: MetricSettings())
         #expect(title == "CPU 8% · RAM 3.2 GB · ↓ 2.1 MB/s ↑ 409.6 KB/s")
     }
@@ -83,7 +84,8 @@ struct StatusTitleFormatterTests {
 
         // Every item shown, so the full bar is checked.
         let title = StatusTitleFormatter.title(for: snapshot, settings: MetricSettings(hiddenMenuBarItems: []))
-        #expect(title == "CPU 8% · RAM 3.2 GB · GPU 12% · Mem Normal · ↓ 2.1 MB/s ↑ 409.6 KB/s · Disk ↓ 1.2 MB/s ↑ 0 B/s · 🔋 84% · 54 °C")
+        #expect(title == "CPU 8% · RAM 3.2 GB · GPU 12% · Mem Normal · "
+            + "↓ 2.1 MB/s ↑ 409.6 KB/s · Disk ↓ 1.2 MB/s ↑ 0 B/s · 🔋 84% · 54 °C")
     }
 
     @Test("a missing optional value drops its segment with no empty separator")
@@ -111,7 +113,8 @@ struct StatusTitleFormatterTests {
             currentPercent: 40, healthPercent: nil, cycleCount: nil,
             isCharging: true, isOnACPower: true, minutesRemaining: nil
         )
-        let title = StatusTitleFormatter.title(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
+        let title = StatusTitleFormatter.title(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
         #expect(title == "⚡ 40%")
     }
 }
@@ -137,11 +140,13 @@ struct ReadoutAndParserTests {
     func vramRowNeedsBothValues() {
         var snapshot = SystemSnapshot()
         snapshot.gpu = GPUReading(utilizationPercent: 10, vramUsedBytes: 1_073_741_824, vramTotalBytes: nil)
-        let noVRAM = ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
+        let noVRAM = ReadoutBuilder.rows(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
         #expect(noVRAM.map(\.label) == ["GPU"])
 
         snapshot.gpu = GPUReading(utilizationPercent: 10, vramUsedBytes: 1_073_741_824, vramTotalBytes: 8_589_934_592)
-        let withVRAM = ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
+        let withVRAM = ReadoutBuilder.rows(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
         #expect(withVRAM.map(\.label) == ["GPU", "VRAM"])
         #expect(withVRAM[1].value == "1.0 GB / 8.0 GB")
     }
@@ -152,7 +157,8 @@ struct ReadoutAndParserTests {
                                 (.warning, .warning), (.critical, .critical)] {
             var snapshot = SystemSnapshot()
             snapshot.memoryPressure = level
-            let row = ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: [])).first
+            let row = ReadoutBuilder.rows(for: snapshot,
+                settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: [])).first
             #expect(row?.value == level.label)
             #expect(row?.accent == accent)
         }
@@ -165,7 +171,8 @@ struct ReadoutAndParserTests {
             currentPercent: 84, healthPercent: 91.4, cycleCount: 212,
             isCharging: false, isOnACPower: false, minutesRemaining: 134
         )
-        let rows = ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
+        let rows = ReadoutBuilder.rows(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
         #expect(rows.map(\.label) == ["Charge", "Health", "Cycles", "Power", "Low Power Mode", "Time left"])
         #expect(rows.first { $0.id == "health" }?.value == "91%")
         #expect(rows.first { $0.id == "time" }?.value == "2h 14m")
@@ -178,7 +185,8 @@ struct ReadoutAndParserTests {
             currentPercent: 84, healthPercent: nil, cycleCount: nil,
             isCharging: true, isOnACPower: true, minutesRemaining: nil
         )
-        let rows = ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
+        let rows = ReadoutBuilder.rows(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
         #expect(!rows.contains { $0.id == "time" })
         #expect(!rows.contains { $0.id == "health" })
         #expect(rows.first { $0.id == "power" }?.value == "Charging")
@@ -188,10 +196,13 @@ struct ReadoutAndParserTests {
     func fanRows() {
         var snapshot = SystemSnapshot()
         snapshot.thermal = ThermalReading(cpuTemperatureC: nil, fans: [])
-        #expect(ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: [])).isEmpty)
+        #expect(ReadoutBuilder.rows(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: [])).isEmpty)
 
-        snapshot.thermal = ThermalReading(cpuTemperatureC: nil, fans: [FanSpeed(index: 0, rpm: 2100), FanSpeed(index: 1, rpm: 1980)])
-        let rows = ReadoutBuilder.rows(for: snapshot, settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
+        snapshot.thermal = ThermalReading(cpuTemperatureC: nil,
+                                          fans: [FanSpeed(index: 0, rpm: 2100), FanSpeed(index: 1, rpm: 1980)])
+        let rows = ReadoutBuilder.rows(for: snapshot,
+            settings: MetricSettings(showCPU: false, showNetwork: false, hiddenMenuBarItems: []))
         #expect(rows.map(\.label) == ["Fan 1", "Fan 2"])
         #expect(rows.first?.value == "2100 RPM")
     }

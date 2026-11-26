@@ -45,28 +45,41 @@ public struct SystemSnapshot: Equatable, Sendable {
     /// Bytes per second received / sent on the included interfaces.
     public var downBps: Double
     public var upBps: Double
+    /// Bytes received / sent since the previous sample. Traffic totals add these directly, so a long gap
+    /// (sleep, or a paused collector) is counted by the bytes that moved, not by rate times the nominal interval.
+    public var downBytesSinceLastSample: Double
+    public var upBytesSinceLastSample: Double
 
     public var gpu: GPUReading?
     public var memoryPressure: MemoryPressureLevel?
     public var disk: DiskRates?
     public var battery: BatteryReading?
     public var thermal: ThermalReading?
+    /// False until a reading has its CPU and rate baselines, so the values above are not yet real. Unsampled items
+    /// show their icon alone, and the popover shows "--". Snapshots built by hand count as sampled.
+    public var isSampled: Bool
 
     public init(
         cpuPercent: Double = 0,
         memoryUsedBytes: UInt64 = 0,
         downBps: Double = 0,
         upBps: Double = 0,
+        downBytesSinceLastSample: Double = 0,
+        upBytesSinceLastSample: Double = 0,
         gpu: GPUReading? = nil,
         memoryPressure: MemoryPressureLevel? = nil,
         disk: DiskRates? = nil,
         battery: BatteryReading? = nil,
-        thermal: ThermalReading? = nil
+        thermal: ThermalReading? = nil,
+        isSampled: Bool = true
     ) {
+        self.isSampled = isSampled
         self.cpuPercent = cpuPercent
         self.memoryUsedBytes = memoryUsedBytes
         self.downBps = downBps
         self.upBps = upBps
+        self.downBytesSinceLastSample = downBytesSinceLastSample
+        self.upBytesSinceLastSample = upBytesSinceLastSample
         self.gpu = gpu
         self.memoryPressure = memoryPressure
         self.disk = disk

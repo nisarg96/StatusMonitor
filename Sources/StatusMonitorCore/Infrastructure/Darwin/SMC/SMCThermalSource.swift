@@ -10,9 +10,16 @@ import Foundation
 ///
 /// The connection is opened once and kept for the life of the app, not reopened on every tick.
 public final class SMCThermalSource: ThermalSource {
-    private struct Sensor {
+    /// An SMC key with its type and size, read once at probe time. Each tick then reads only the value.
+    struct Sensor {
         let key: String
+        let info: AppleSMCConnection.KeyInfo
     }
+
+    /// Largest plausible fan count. An FNum above this is a bad read, so no fans are shown.
+    static let maxFanCount = 16
+    /// Largest plausible fan speed in rpm. Anything above it is a bad read and that fan is skipped.
+    static let maxFanRPM = 100_000
 
     private let lock = NSLock()
     private let queue = DispatchQueue(label: "StatusMonitor.SMC", qos: .utility)
@@ -20,7 +27,7 @@ public final class SMCThermalSource: ThermalSource {
     // Guarded by `lock`.
     private var connection: AppleSMCConnection?
     private var temperatureSensors: [Sensor] = []
-    private var fanCount = 0
+    private var fanSensors: [(index: Int, sensor: Sensor)] = []
     private var cached: ThermalReading?
     private var refreshInFlight = false
 
@@ -30,8 +37,8 @@ public final class SMCThermalSource: ThermalSource {
         guard let connection = AppleSMCConnection() else { return false }
 
         let sensors = Self.discoverTemperatureSensors(connection)
-        let fans = Self.fanCount(connection)
-        guard let reading = Self.read(connection, sensors: sensors, fanCount: fans) else {
+        let fans = Self.discoverFanSensors(connection)
+        guard let reading = Self.read(connection, temperatures: sensors, fans: fans) else {
             // Nothing decodable: treat the thermal collector as unavailable.
             return false
         }
@@ -39,7 +46,7 @@ public final class SMCThermalSource: ThermalSource {
         lock.lock()
         self.connection = connection
         temperatureSensors = sensors
-        fanCount = fans
+        fanSensors = fans
         cached = reading
         lock.unlock()
         return true
@@ -59,11 +66,11 @@ public final class SMCThermalSource: ThermalSource {
         }
         refreshInFlight = true
         let sensors = temperatureSensors
-        let fans = fanCount
+        let fans = fanSensors
         lock.unlock()
 
         queue.async { [self] in
-            let reading = Self.read(connection, sensors: sensors, fanCount: fans)
+            let reading = Self.read(connection, temperatures: sensors, fans: fans)
             lock.lock()
             // A failed read clears the value, so the section hides instead of showing stale numbers.
             cached = reading
@@ -82,39 +89,51 @@ public final class SMCThermalSource: ThermalSource {
                   TemperatureSelector.isCPUSensorKey(key),
                   let info = connection.keyInfo(key),
                   info.type == "flt " || info.type == "sp78" else { continue }
-            sensors.append(Sensor(key: key))
+            sensors.append(Sensor(key: key, info: info))
         }
         return sensors
     }
 
-    private static func fanCount(_ connection: AppleSMCConnection) -> Int {
-        // FNum is absent on fanless Macs (for example, MacBook Air). That reads as zero fans, and no fan rows are shown.
-        guard let entry = connection.read("FNum"),
-              let value = SMCDecoder.decode(type: entry.type, bytes: entry.bytes) else { return 0 }
-        return Int(value)
+    /// Looks up each fan's key info once. A fan whose key is missing at probe time is left out.
+    private static func discoverFanSensors(_ connection: AppleSMCConnection) -> [(index: Int, sensor: Sensor)] {
+        let count = fanCount(connection)
+        return (0..<count).compactMap { index in
+            let key = "F\(index)Ac"
+            guard let info = connection.keyInfo(key) else { return nil }
+            return (index, Sensor(key: key, info: info))
+        }
     }
 
-    /// Returns nil when neither a temperature nor a fan could be read. A fan that fails alone is skipped, not shown as 0.
-    private static func read(
-        _ connection: AppleSMCConnection,
-        sensors: [Sensor],
-        fanCount: Int
+    private static func fanCount(_ connection: AppleSMCConnection) -> Int {
+        // FNum is absent on fanless Macs (for example, MacBook Air). That reads as zero fans, and no fan rows are
+        // shown.
+        guard let entry = connection.read("FNum"),
+              let value = SMCDecoder.decode(type: entry.type, bytes: entry.bytes) else { return 0 }
+        return AppleSMCConnection.integerCount(value, max: maxFanCount) ?? 0
+    }
+
+    /// Returns nil when neither a temperature nor a fan could be read. A fan that fails alone is skipped, not shown
+    /// as 0. Reads use the key info cached at probe time, so no per-tick key lookup happens.
+    static func read(
+        _ connection: AppleSMCConnection.KeyReading,
+        temperatures: [Sensor],
+        fans: [(index: Int, sensor: Sensor)]
     ) -> ThermalReading? {
-        let temperatures: [Double] = sensors.compactMap { sensor in
-            guard let entry = connection.read(sensor.key) else { return nil }
+        let temperatureValues: [Double] = temperatures.compactMap { sensor in
+            guard let entry = connection.read(sensor.key, info: sensor.info) else { return nil }
             return SMCDecoder.decode(type: entry.type, bytes: entry.bytes)
         }
-        let cpuTemperature = TemperatureSelector.hottestPlausible(temperatures)
+        let cpuTemperature = TemperatureSelector.hottestPlausible(temperatureValues)
 
-        var fans: [FanSpeed] = []
-        for index in 0..<max(0, fanCount) {
-            guard let entry = connection.read("F\(index)Ac"),
+        var speeds: [FanSpeed] = []
+        for (index, sensor) in fans {
+            guard let entry = connection.read(sensor.key, info: sensor.info),
                   let rpm = SMCDecoder.decode(type: entry.type, bytes: entry.bytes),
-                  rpm >= 0 else { continue }
-            fans.append(FanSpeed(index: index, rpm: Int(rpm.rounded())))
+                  let count = AppleSMCConnection.integerCount(rpm, max: maxFanRPM) else { continue }
+            speeds.append(FanSpeed(index: index, rpm: count))
         }
 
-        guard cpuTemperature != nil || !fans.isEmpty else { return nil }
-        return ThermalReading(cpuTemperatureC: cpuTemperature, fans: fans)
+        guard cpuTemperature != nil || !speeds.isEmpty else { return nil }
+        return ThermalReading(cpuTemperatureC: cpuTemperature, fans: speeds)
     }
 }

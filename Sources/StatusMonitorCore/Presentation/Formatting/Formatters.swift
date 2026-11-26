@@ -94,24 +94,16 @@ public struct TitleSegment: Equatable, Sendable {
 /// so there are no empty separators, no "N/A", and no zeros.
 public enum StatusTitleFormatter {
     public static func segments(for snapshot: SystemSnapshot, settings: MetricSettings) -> [TitleSegment] {
+        guard snapshot.isSampled else { return [] }
         var segments: [TitleSegment] = []
 
         if settings.showCPU {
-            switch settings.cpuMode {
-            case .percent:
-                segments.append(TitleSegment(symbol: MetricSymbol.cpu, plainLabel: "CPU", value: Format.percent(snapshot.cpuPercent)))
-            case .memoryGB:
-                // The CPU slot shows RAM in this mode, so a separate RAM item would repeat it.
-                if settings.isMenuBarItemShown(.ram) {
-                    segments.append(TitleSegment(symbol: MetricSymbol.memory, plainLabel: "RAM", value: Format.gib(snapshot.memoryUsedBytes)))
-                }
-            }
-            if settings.cpuMode == .percent, settings.isMenuBarItemShown(.ram) {
-                segments.append(TitleSegment(symbol: MetricSymbol.memory, plainLabel: "RAM", value: Format.gib(snapshot.memoryUsedBytes)))
-            }
+            segments.append(contentsOf: cpuSegments(snapshot, settings: settings))
         }
         if let gpu = snapshot.gpu, settings.isMenuBarItemShown(.gpu) {
-            segments.append(TitleSegment(symbol: MetricSymbol.gpu, plainLabel: "GPU", value: Format.percent(gpu.utilizationPercent)))
+            segments.append(TitleSegment(
+                symbol: MetricSymbol.gpu, plainLabel: "GPU",
+                value: Format.percent(gpu.utilizationPercent)))
         }
         if let level = snapshot.memoryPressure, settings.isMenuBarItemShown(.memoryPressure) {
             segments.append(TitleSegment(symbol: MetricSymbol.memoryPressure, plainLabel: "Mem", value: level.label))
@@ -137,9 +129,34 @@ public enum StatusTitleFormatter {
             ))
         }
         if let temperature = snapshot.thermal?.cpuTemperatureC, settings.isMenuBarItemShown(.thermal) {
-            segments.append(TitleSegment(symbol: MetricSymbol.thermal, plainLabel: "", value: Format.celsius(temperature)))
+            segments.append(TitleSegment(
+                symbol: MetricSymbol.thermal, plainLabel: "",
+                value: Format.celsius(temperature)))
         }
 
+        return segments
+    }
+
+    private static func cpuSegments(_ snapshot: SystemSnapshot, settings: MetricSettings) -> [TitleSegment] {
+        var segments: [TitleSegment] = []
+        switch settings.cpuMode {
+        case .percent:
+            segments.append(TitleSegment(
+                symbol: MetricSymbol.cpu, plainLabel: "CPU",
+                value: Format.percent(snapshot.cpuPercent)))
+        case .memoryGB:
+            // The CPU slot shows RAM in this mode, so a separate RAM item would repeat it.
+            if settings.isMenuBarItemShown(.ram) {
+                segments.append(TitleSegment(
+                    symbol: MetricSymbol.memory, plainLabel: "RAM",
+                    value: Format.gib(snapshot.memoryUsedBytes)))
+            }
+        }
+        if settings.cpuMode == .percent, settings.isMenuBarItemShown(.ram) {
+            segments.append(TitleSegment(
+                symbol: MetricSymbol.memory, plainLabel: "RAM",
+                value: Format.gib(snapshot.memoryUsedBytes)))
+        }
         return segments
     }
 
@@ -158,14 +175,25 @@ public enum MenuBarItemFormatter {
         snapshot: SystemSnapshot,
         settings: MetricSettings
     ) -> TitleSegment? {
+        // Before the first sample the value is not real, so the item shows its icon alone.
+        guard snapshot.isSampled else { return nil }
+        return sampledSegment(for: item, snapshot: snapshot)
+    }
+
+    private static func sampledSegment(for item: MetricItemID, snapshot: SystemSnapshot) -> TitleSegment? {
         switch item {
         case .cpu:
             return TitleSegment(symbol: MetricSymbol.cpu, plainLabel: "CPU", value: Format.percent(snapshot.cpuPercent))
         case .ram:
-            return TitleSegment(symbol: MetricSymbol.memory, plainLabel: "RAM", value: Format.gib(snapshot.memoryUsedBytes))
+            return TitleSegment(
+                symbol: MetricSymbol.memory, plainLabel: "RAM",
+                value: Format.gib(snapshot.memoryUsedBytes))
         case .gpu:
-            guard let gpu = snapshot.gpu else { return nil }
-            return TitleSegment(symbol: MetricSymbol.gpu, plainLabel: "GPU", value: Format.percent(gpu.utilizationPercent))
+            return snapshot.gpu.map { gpu in
+                TitleSegment(
+                    symbol: MetricSymbol.gpu, plainLabel: "GPU",
+                    value: Format.percent(gpu.utilizationPercent))
+            }
         case .memoryPressure:
             guard let level = snapshot.memoryPressure else { return nil }
             return TitleSegment(symbol: MetricSymbol.memoryPressure, plainLabel: "Mem", value: level.label)
@@ -181,16 +209,21 @@ public enum MenuBarItemFormatter {
                 value: "↓ \(Format.rate(disk.readBps)) ↑ \(Format.rate(disk.writeBps))"
             )
         case .battery:
-            guard let battery = snapshot.battery, let percent = battery.currentPercent else { return nil }
-            return TitleSegment(
-                symbol: MetricSymbol.battery(percent: percent, charging: battery.isCharging),
-                plainLabel: battery.isCharging ? "⚡" : "🔋",
-                value: "\(percent)%"
-            )
+            return batterySegment(snapshot)
         case .thermal:
-            guard let temperature = snapshot.thermal?.cpuTemperatureC else { return nil }
-            return TitleSegment(symbol: MetricSymbol.thermal, plainLabel: "", value: Format.celsius(temperature))
+            return snapshot.thermal?.cpuTemperatureC.map {
+                TitleSegment(symbol: MetricSymbol.thermal, plainLabel: "", value: Format.celsius($0))
+            }
         }
+    }
+
+    private static func batterySegment(_ snapshot: SystemSnapshot) -> TitleSegment? {
+        guard let battery = snapshot.battery, let percent = battery.currentPercent else { return nil }
+        return TitleSegment(
+            symbol: MetricSymbol.battery(percent: percent, charging: battery.isCharging),
+            plainLabel: battery.isCharging ? "⚡" : "🔋",
+            value: "\(percent)%"
+        )
     }
 }
 
@@ -219,156 +252,6 @@ public struct ReadoutRow: Equatable, Identifiable, Sendable {
         self.label = label
         self.value = value
         self.accent = accent
-    }
-}
-
-/// Builds the popover rows. A row exists only when its value exists, so nothing is shown as zero or N/A.
-public enum ReadoutBuilder {
-    public static func rows(for snapshot: SystemSnapshot, settings: MetricSettings) -> [ReadoutRow] {
-        var rows: [ReadoutRow] = []
-
-        if settings.showCPU {
-            rows.append(ReadoutRow(id: "cpu", symbol: MetricSymbol.cpu, label: "CPU", value: Format.percent(snapshot.cpuPercent)))
-            rows.append(ReadoutRow(
-                id: "ram", symbol: MetricSymbol.memory, label: "Used RAM",
-                value: Format.gib(snapshot.memoryUsedBytes),
-                accent: ramAccent(snapshot, settings: settings)
-            ))
-        }
-        if settings.showNetwork {
-            rows.append(ReadoutRow(id: "down", symbol: MetricSymbol.download, label: "Download", value: Format.rate(snapshot.downBps)))
-            rows.append(ReadoutRow(id: "up", symbol: MetricSymbol.upload, label: "Upload", value: Format.rate(snapshot.upBps)))
-        }
-
-        if let gpu = snapshot.gpu {
-            rows.append(ReadoutRow(
-                id: "gpu", collector: .gpu, symbol: MetricSymbol.gpu, label: "GPU",
-                value: Format.percent(gpu.utilizationPercent)
-            ))
-            if let used = gpu.vramUsedBytes, let total = gpu.vramTotalBytes, total > 0 {
-                rows.append(ReadoutRow(
-                    id: "vram", collector: .gpu, symbol: MetricSymbol.memory, label: "VRAM",
-                    value: "\(Format.gib(used)) / \(Format.gib(total))"
-                ))
-            }
-        }
-
-        if let level = snapshot.memoryPressure {
-            rows.append(ReadoutRow(
-                id: "pressure", collector: .memoryPressure, symbol: MetricSymbol.memoryPressure,
-                label: "Memory pressure", value: level.label, accent: accent(for: level)
-            ))
-        }
-
-        if let disk = snapshot.disk {
-            rows.append(ReadoutRow(id: "diskRead", collector: .disk, symbol: MetricSymbol.download, label: "Read", value: Format.rate(disk.readBps)))
-            rows.append(ReadoutRow(id: "diskWrite", collector: .disk, symbol: MetricSymbol.upload, label: "Write", value: Format.rate(disk.writeBps)))
-        }
-
-        if let battery = snapshot.battery {
-            // Each battery row is filtered by its own detail toggle.
-            rows.append(contentsOf: batteryRows(battery).filter { row in
-                guard let detail = batteryDetail(forRowID: row.id) else { return true }
-                return settings.isBatteryDetailShown(detail)
-            })
-        }
-
-        if let thermal = snapshot.thermal {
-            if let temperature = thermal.cpuTemperatureC {
-                rows.append(ReadoutRow(
-                    id: "temp", collector: .thermal, symbol: MetricSymbol.thermal,
-                    label: "CPU temp", value: Format.celsius(temperature)
-                ))
-            }
-            for fan in thermal.fans {
-                rows.append(ReadoutRow(
-                    id: "fan\(fan.index)", collector: .thermal, symbol: MetricSymbol.fan,
-                    label: "Fan \(fan.index + 1)", value: "\(fan.rpm) RPM"
-                ))
-            }
-        }
-
-        return rows
-    }
-
-    /// Colour for used RAM, from the RAM threshold. Nil when total RAM is unknown, so no colour is guessed.
-    static func ramAccent(_ snapshot: SystemSnapshot, settings: MetricSettings) -> ReadoutAccent? {
-        guard let percent = RAMAlertLevel.usedPercent(
-            usedBytes: snapshot.memoryUsedBytes,
-            physicalBytes: ProcessInfo.processInfo.physicalMemory
-        ) else { return nil }
-        return RAMAlertLevel.level(usedPercent: percent, thresholdPercent: settings.autoCleanThresholdPercent)
-    }
-
-    /// Maps a battery row id to the detail toggle that controls it.
-    static func batteryDetail(forRowID id: String) -> BatteryDetail? {
-        switch id {
-        case "batt": return .charge
-        case "health": return .health
-        case "cycles": return .cycles
-        case "power": return .powerState
-        case "lpm": return .lowPowerMode
-        case "flow": return .powerFlow
-        case "time": return .timeRemaining
-        default: return nil
-        }
-    }
-
-    private static func batteryRows(_ battery: BatteryReading) -> [ReadoutRow] {
-        var rows: [ReadoutRow] = []
-        if let percent = battery.currentPercent {
-            rows.append(ReadoutRow(
-                id: "batt", collector: .battery,
-                symbol: MetricSymbol.battery(percent: percent, charging: battery.isCharging),
-                label: "Charge", value: "\(percent)%"
-            ))
-        }
-        if let health = battery.healthPercent {
-            rows.append(ReadoutRow(
-                id: "health", collector: .battery, symbol: "heart.fill",
-                label: "Health", value: "\(Int(health.rounded()))%"
-            ))
-        }
-        if let cycles = battery.cycleCount {
-            rows.append(ReadoutRow(
-                id: "cycles", collector: .battery, symbol: "arrow.triangle.2.circlepath",
-                label: "Cycles", value: "\(cycles)"
-            ))
-        }
-        rows.append(ReadoutRow(
-            id: "power", collector: .battery,
-            symbol: battery.isCharging ? "bolt.fill" : (battery.isOnACPower ? "powerplug.fill" : "battery.0percent"),
-            label: "Power",
-            value: battery.isCharging ? "Charging" : (battery.isOnACPower ? "AC power" : "On battery")
-        ))
-        rows.append(ReadoutRow(
-            id: "lpm", collector: .battery, symbol: "leaf.fill",
-            label: "Low Power Mode", value: battery.isLowPowerMode ? "On" : "Off"
-        ))
-        if let watts = battery.powerWatts {
-            rows.append(ReadoutRow(
-                id: "flow", collector: .battery,
-                symbol: watts >= 0 ? "arrow.up.circle" : "arrow.down.circle",
-                label: watts >= 0 ? "Charging" : "Discharging",
-                value: Format.watts(watts)
-            ))
-        }
-        if let minutes = battery.minutesRemaining {
-            rows.append(ReadoutRow(
-                id: "time", collector: .battery, symbol: "clock",
-                label: battery.isCharging ? "Time to full" : "Time left",
-                value: Format.duration(minutes: minutes)
-            ))
-        }
-        return rows
-    }
-
-    private static func accent(for level: MemoryPressureLevel) -> ReadoutAccent {
-        switch level {
-        case .normal: return .normal
-        case .warning: return .warning
-        case .critical: return .critical
-        }
     }
 }
 

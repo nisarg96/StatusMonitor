@@ -45,7 +45,8 @@ public struct IOKitGPUSource: GPUSource {
 // MARK: - Disk
 
 /// Cumulative read and write bytes summed across IOBlockStorageDriver services.
-/// Summing per driver instance may double-count if a virtual disk stacks on another driver. Physical disks are the main case.
+/// Summing per driver instance may double-count if a virtual disk stacks on another driver. Physical disks are the
+/// main case.
 public struct IOKitDiskCounterSource: DiskCounterSource {
     public init() {}
 

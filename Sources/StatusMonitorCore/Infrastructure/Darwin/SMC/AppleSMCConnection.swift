@@ -10,6 +10,15 @@ import IOKit
 ///
 /// Not thread-safe. The owner serializes calls, see SMCThermalSource.
 final class AppleSMCConnection {
+    /// What the thermal source needs from the SMC. A seam so the cached-key read path can be tested without hardware.
+    protocol KeyReading: AnyObject {
+        func keyInfo(_ key: String) -> AppleSMCConnection.KeyInfo?
+        func read(_ key: String, info: AppleSMCConnection.KeyInfo) -> (type: String, bytes: [UInt8])?
+    }
+
+    /// Upper bound on the SMC key count. A real Mac has a few thousand keys, so anything above this is a bad read.
+    static let maxKeyCount = 65_536
+
     private enum Selector {
         static let kernelIndex: UInt32 = 2
         static let readBytes: UInt8 = 5
@@ -53,9 +62,15 @@ final class AppleSMCConnection {
         return KeyInfo(size: size, type: Self.string(fourCC: Self.readU32(output, 32)))
     }
 
-    /// Reads a key's raw bytes, including its declared type.
+    /// Reads a key's raw bytes, including its declared type. Looks up the key info first.
     func read(_ key: String) -> (type: String, bytes: [UInt8])? {
-        guard let info = keyInfo(key), let code = Self.fourCC(key) else { return nil }
+        guard let info = keyInfo(key) else { return nil }
+        return read(key, info: info)
+    }
+
+    /// Reads a key's raw bytes using key info obtained earlier, such as at probe time. Skips the key-info lookup.
+    func read(_ key: String, info: KeyInfo) -> (type: String, bytes: [UInt8])? {
+        guard let code = Self.fourCC(key) else { return nil }
         var input = Self.emptyStruct()
         Self.writeU32(&input, 0, code)
         Self.writeU32(&input, 28, UInt32(info.size))
@@ -68,7 +83,14 @@ final class AppleSMCConnection {
     func keyCount() -> Int? {
         guard let entry = read("#KEY"),
               let value = SMCDecoder.decode(type: entry.type, bytes: entry.bytes) else { return nil }
-        return Int(value)
+        return Self.integerCount(value, max: Self.maxKeyCount)
+    }
+
+    /// Converts a decoded SMC number to a count. Returns nil for NaN, infinity, negatives and anything above `max`,
+    /// because `Int(Double)` traps on those.
+    static func integerCount(_ value: Double, max: Int) -> Int? {
+        guard value.isFinite, value >= 0, value <= Double(max) else { return nil }
+        return Int(value.rounded())
     }
 
     /// Key name at a given index, used to enumerate sensors.
@@ -84,12 +106,12 @@ final class AppleSMCConnection {
         var inputBuffer = input
         var outputBuffer = [UInt8](repeating: 0, count: Self.structSize)
         var outputSize = Self.structSize
-        let kr = IOConnectCallStructMethod(
+        let kernelResult = IOConnectCallStructMethod(
             connection, Selector.kernelIndex,
             &inputBuffer, Self.structSize,
             &outputBuffer, &outputSize
         )
-        guard kr == KERN_SUCCESS else { return nil }
+        guard kernelResult == KERN_SUCCESS else { return nil }
         return outputBuffer
     }
 
@@ -99,7 +121,8 @@ final class AppleSMCConnection {
         [UInt8](repeating: 0, count: structSize)
     }
 
-    /// Four-character codes are big-endian, for example "TC0P" -> 0x54433050. Returns nil unless the string is exactly 4 ASCII bytes.
+    /// Four-character codes are big-endian, for example "TC0P" -> 0x54433050. Returns nil unless the string is
+    /// exactly 4 ASCII bytes.
     static func fourCC(_ key: String) -> UInt32? {
         let bytes = Array(key.utf8)
         guard bytes.count == 4 else { return nil }
@@ -108,7 +131,7 @@ final class AppleSMCConnection {
 
     static func string(fourCC value: UInt32) -> String {
         let bytes = [UInt8(value >> 24), UInt8((value >> 16) & 0xFF), UInt8((value >> 8) & 0xFF), UInt8(value & 0xFF)]
-        return String(decoding: bytes, as: UTF8.self)
+        return String(bytes: bytes, encoding: .utf8) ?? ""
     }
 
     /// Native (little-endian on every supported Mac) store, matching the layout the SMC driver expects.
@@ -124,3 +147,5 @@ final class AppleSMCConnection {
             | UInt32(buffer[offset + 2]) << 16 | UInt32(buffer[offset + 3]) << 24
     }
 }
+
+extension AppleSMCConnection: AppleSMCConnection.KeyReading {}

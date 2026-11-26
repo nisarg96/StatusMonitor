@@ -33,9 +33,9 @@ struct AutoCleanThresholdTests {
         #expect(AutoCleanThreshold.snapped(97) == 95)
     }
 
-    @Test("the default is 90%")
+    @Test("the default is 85%")
     func defaultValue() {
-        #expect(AutoCleanThreshold.defaultPercent == 90)
+        #expect(AutoCleanThreshold.defaultPercent == 85)
         #expect(AutoCleanThreshold.stops.contains(AutoCleanThreshold.defaultPercent))
     }
 
@@ -46,68 +46,80 @@ struct AutoCleanThresholdTests {
     }
 }
 
+/// Marks the inputs as sustained for 30 s, so a test reaches the rules after the sustain check.
+private func sustained(_ inputs: AutoCleanInputs) -> AutoCleanInputs {
+    var ready = inputs
+    ready.sustainStartSeconds = 0
+    ready.monotonicNowSeconds = 30
+    return ready
+}
+
 @Suite("AutoCleanDecision")
 struct AutoCleanDecisionTests {
     @Test("disabled Auto Clean never cleans")
     func disabled() {
-        let d = AutoCleanDecision.evaluate(
-            enabled: false, usedPercent: 99, thresholdPercent: 90,
-            lastCleanAt: nil, helperAvailable: true, nowEpoch: 1_000
+        let decision = AutoCleanDecision.evaluate(
+            AutoCleanInputs(enabled: false, usedPercent: 99, thresholdPercent: 90,
+                lastCleanAt: nil, nowEpoch: 1_000),
+            helperAvailable: true
         )
-        #expect(d == .skip(reason: .disabled))
+        #expect(decision == .skip(reason: .disabled))
     }
 
     @Test("below the threshold it does not clean")
     func belowThreshold() {
-        let d = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 89.9, thresholdPercent: 90,
-            lastCleanAt: nil, helperAvailable: true, nowEpoch: 1_000
+        let decision = AutoCleanDecision.evaluate(
+            AutoCleanInputs(enabled: true, usedPercent: 89.9, thresholdPercent: 90,
+                lastCleanAt: nil, nowEpoch: 1_000),
+            helperAvailable: true
         )
-        #expect(d == .skip(reason: .belowThreshold))
+        #expect(decision == .skip(reason: .belowThreshold))
     }
 
     @Test("at or above the threshold, with the helper available, it cleans")
     func atThreshold() {
-        let d = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 90, thresholdPercent: 90,
-            lastCleanAt: nil, helperAvailable: true, nowEpoch: 1_000
+        let decision = AutoCleanDecision.evaluate(
+            sustained(AutoCleanInputs(enabled: true, usedPercent: 90, thresholdPercent: 90,
+                lastCleanAt: nil, nowEpoch: 1_000)),
+            helperAvailable: true
         )
-        #expect(d == .clean)
+        #expect(decision == .clean)
     }
 
     @Test("the 180 s cooldown is a hard floor")
     func cooldownFloor() {
         #expect(AutoCleanDecision.cooldownSeconds == 180)
         let within = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 95, thresholdPercent: 90,
-            lastCleanAt: 1_000, helperAvailable: true, nowEpoch: 1_179
+            sustained(AutoCleanInputs(enabled: true, usedPercent: 95, thresholdPercent: 90,
+                lastCleanAt: 1_000, nowEpoch: 1_179)),
+            helperAvailable: true
         )
         #expect(within == .skip(reason: .cooldown))
 
         let after = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 95, thresholdPercent: 90,
-            lastCleanAt: 1_000, helperAvailable: true, nowEpoch: 1_180
+            sustained(AutoCleanInputs(enabled: true, usedPercent: 95, thresholdPercent: 90,
+                lastCleanAt: 1_000, nowEpoch: 1_180)),
+            helperAvailable: true
         )
         #expect(after == .clean)
     }
 
     @Test("without the helper it skips with a clear reason")
     func helperMissing() {
-        let d = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 95, thresholdPercent: 90,
-            lastCleanAt: nil, helperAvailable: false, nowEpoch: 1_000
+        let decision = AutoCleanDecision.evaluate(
+            sustained(AutoCleanInputs(enabled: true, usedPercent: 95, thresholdPercent: 90,
+                lastCleanAt: nil, nowEpoch: 1_000)),
+            helperAvailable: false
         )
-        #expect(d == .skip(reason: .helperNotAvailable))
+        #expect(decision == .skip(reason: .helperNotAvailable))
     }
 
     @Test("the helper check is not run unless a clean is otherwise due")
     func helperCheckIsLazy() {
         var helperChecks = 0
         _ = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 50, thresholdPercent: 90,
-            lastCleanAt: nil,
-            helperAvailable: { helperChecks += 1; return true }(),
-            nowEpoch: 1_000
+            AutoCleanInputs(enabled: true, usedPercent: 50, thresholdPercent: 90, lastCleanAt: nil, nowEpoch: 1_000),
+            helperAvailable: { helperChecks += 1; return true }()
         )
         // The autoclosure is evaluated only when the threshold is met, so this count stays zero.
         #expect(helperChecks == 0)
@@ -115,11 +127,12 @@ struct AutoCleanDecisionTests {
 
     @Test("a future last-clean time is refused until clamped and stored")
     func futureLastCleanRefused() {
-        let d = AutoCleanDecision.evaluate(
-            enabled: true, usedPercent: 95, thresholdPercent: 90,
-            lastCleanAt: 9_000, helperAvailable: true, nowEpoch: 1_000
+        let decision = AutoCleanDecision.evaluate(
+            sustained(AutoCleanInputs(enabled: true, usedPercent: 95, thresholdPercent: 90,
+                lastCleanAt: 9_000, nowEpoch: 1_000)),
+            helperAvailable: true
         )
-        #expect(d == .skip(reason: .cooldown))
+        #expect(decision == .skip(reason: .cooldown))
     }
 }
 
@@ -133,9 +146,9 @@ struct AutoCleanSettingsTests {
     @Test("the settings view model stores the snapped slider value")
     func viewModelSnaps() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.setAutoCleanThresholdPercent(83)
-        #expect(vm.settings.autoCleanThresholdPercent == 85)
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.setAutoCleanThresholdPercent(83)
+        #expect(viewModel.settings.autoCleanThresholdPercent == 85)
         #expect(repo.stored.autoCleanThresholdPercent == 85)
     }
 

@@ -95,8 +95,9 @@ public struct BatteryReading: Equatable, Sendable {
     public var minutesRemaining: Int?
     /// System Low Power Mode. This is a system setting, not a battery measurement, so the adapter fills it in.
     public var isLowPowerMode: Bool = false
-    /// Battery power flow in watts: positive while charging, negative while discharging. Nil when voltage or current is unknown.
-    public var powerWatts: Double? = nil
+    /// Battery power flow in watts: positive while charging, negative while discharging. Nil when voltage or current
+    /// is unknown.
+    public var powerWatts: Double?
 
     public init(
         currentPercent: Int?,

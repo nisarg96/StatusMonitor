@@ -49,7 +49,9 @@ public final class SampleSystemMetricsUseCase {
             cpuPercent: cpuPercent,
             memoryUsedBytes: sources.memory.readUsedBytes() ?? 0,
             downBps: rates.downBps,
-            upBps: rates.upBps
+            upBps: rates.upBps,
+            downBytesSinceLastSample: Double(rates.downBytes),
+            upBytesSinceLastSample: Double(rates.upBytes)
         )
 
         if enabled.contains(.gpu) {
@@ -63,6 +65,9 @@ public final class SampleSystemMetricsUseCase {
                 for: sources.disk.readCounters(),
                 elapsedSeconds: elapsedSeconds
             )
+        } else {
+            // Drop the baseline so re-enabling starts a fresh measurement instead of averaging across the gap.
+            diskRates = DiskRateCalculator()
         }
         if enabled.contains(.battery) {
             snapshot.battery = sources.battery.read()

@@ -3,8 +3,10 @@ import Testing
 
 @Suite("InterfaceFilter")
 struct InterfaceFilterTests {
-    private let down = InterfaceCounters(name: "en1", isUp: false, isRunning: false, isLoopback: false, rxBytes: 0, txBytes: 0)
-    private let notRunning = InterfaceCounters(name: "en2", isUp: true, isRunning: false, isLoopback: false, rxBytes: 0, txBytes: 0)
+    private let down = InterfaceCounters(
+        name: "en1", isUp: false, isRunning: false, isLoopback: false, rxBytes: 0, txBytes: 0)
+    private let notRunning = InterfaceCounters(
+        name: "en2", isUp: true, isRunning: false, isLoopback: false, rxBytes: 0, txBytes: 0)
 
     @Test("standard policy keeps only up, running, non-loopback interfaces")
     func standardPolicy() {

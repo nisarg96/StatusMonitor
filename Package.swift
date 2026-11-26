@@ -12,7 +12,7 @@ let package = Package(
     name: "StatusMonitor",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "StatusMonitor", targets: ["StatusMonitor"]),
+        .executable(name: "StatusMonitor", targets: ["StatusMonitor"])
     ],
     targets: [
         .target(
@@ -28,6 +28,6 @@ let package = Package(
             name: "StatusMonitorCoreTests",
             dependencies: ["StatusMonitorCore"],
             path: "Tests/StatusMonitorCoreTests"
-        ),
+        )
     ]
 )

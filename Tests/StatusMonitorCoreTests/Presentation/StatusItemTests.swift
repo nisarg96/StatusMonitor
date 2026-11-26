@@ -71,7 +71,8 @@ struct StatusItemViewModelTests {
         rig.monitor.applyCapabilities(MetricCapabilities(available: Set(CollectorKind.allCases)))
         rig.settings.setMenuBarPriority(.gpu, .high)
         rig.monitor.refresh()
-        // cpu and ram are high by default, then gpu was raised to high, so all three are high and keep their fixed order.
+        // cpu and ram are high by default, then gpu was raised to high, so all three are high and keep their fixed
+        // order.
         #expect(rig.monitor.visibleItems == [.cpu, .gpu, .network])
     }
 
@@ -82,7 +83,9 @@ struct StatusItemViewModelTests {
         rig.settings.setMenuBarPriority(.cpu, .low)
         rig.monitor.refresh()
         #expect(rig.monitor.visibleItems == [.cpu, .gpu, .network])
-        rig.settings.setMenuBarOrder([.network, .gpu, .cpu] + MetricItemID.allCases.filter { ![.cpu, .gpu, .network, .ram].contains($0) } + [.ram])
+        rig.settings.setMenuBarOrder(
+            [.network, .gpu, .cpu] + MetricItemID.allCases.filter { ![.cpu, .gpu, .network, .ram].contains($0) }
+                + [.ram])
         rig.monitor.refresh()
         #expect(rig.monitor.visibleItems == [.network, .gpu, .cpu])
     }
@@ -118,18 +121,19 @@ struct StatusItemViewModelTests {
 
     @Test("turning a switched-off metric on in the bar also turns its card on")
     func barToggleEnablesCard() {
-        let repo = InMemorySettingsRepository(MetricSettings(collectorOverrides: [.disk: false, .memoryPressure: false]))
-        let vm = SettingsViewModel(repository: repo)
+        let repo = InMemorySettingsRepository(
+            MetricSettings(collectorOverrides: [.disk: false, .memoryPressure: false]))
+        let viewModel = SettingsViewModel(repository: repo)
         let caps = MetricCapabilities(available: Set(CollectorKind.allCases))
 
-        vm.setItemInMenuBar(.disk, shown: true)
-        vm.setItemInMenuBar(.memoryPressure, shown: true)
-        #expect(vm.settings.collectorOverrides[.disk] == true)
-        #expect(vm.settings.isMenuBarItemVisible(.disk, capabilities: caps))
-        #expect(vm.settings.isMenuBarItemVisible(.memoryPressure, capabilities: caps))
+        viewModel.setItemInMenuBar(.disk, shown: true)
+        viewModel.setItemInMenuBar(.memoryPressure, shown: true)
+        #expect(viewModel.settings.collectorOverrides[.disk] == true)
+        #expect(viewModel.settings.isMenuBarItemVisible(.disk, capabilities: caps))
+        #expect(viewModel.settings.isMenuBarItemVisible(.memoryPressure, capabilities: caps))
 
-        vm.setItemInMenuBar(.disk, shown: false)
-        #expect(!vm.settings.isMenuBarItemVisible(.disk, capabilities: caps))
+        viewModel.setItemInMenuBar(.disk, shown: false)
+        #expect(!viewModel.settings.isMenuBarItemVisible(.disk, capabilities: caps))
     }
 
     @Test("priorities persist across a restart")

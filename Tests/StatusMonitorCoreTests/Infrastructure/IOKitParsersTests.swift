@@ -9,7 +9,7 @@ struct GPUStatisticsParserTests {
         let stats: [String: Any] = [
             "Device Utilization %": NSNumber(value: 37),
             "vramUsedBytes": NSNumber(value: 1_000_000_000),
-            "vramFreeBytes": NSNumber(value: 3_000_000_000),
+            "vramFreeBytes": NSNumber(value: 3_000_000_000)
         ]
         let reading = GPUStatisticsParser.parse(stats)
         #expect(reading?.utilizationPercent == 37)
@@ -37,7 +37,7 @@ struct GPUStatisticsParserTests {
     func partialVRAMOmitted() {
         let reading = GPUStatisticsParser.parse([
             "Device Utilization %": NSNumber(value: 5),
-            "vramUsedBytes": NSNumber(value: 100),
+            "vramUsedBytes": NSNumber(value: 100)
         ])
         #expect(reading?.utilizationPercent == 5)
         #expect(reading?.vramUsedBytes == nil)
@@ -51,7 +51,7 @@ struct DiskStatisticsParserTests {
     func sumsDrivers() {
         let counters = DiskStatisticsParser.counters(from: [
             ["Bytes (Read)": NSNumber(value: 100), "Bytes (Write)": NSNumber(value: 50)],
-            ["Bytes (Read)": NSNumber(value: 300), "Bytes (Write)": NSNumber(value: 150)],
+            ["Bytes (Read)": NSNumber(value: 300), "Bytes (Write)": NSNumber(value: 150)]
         ])
         #expect(counters == DiskCounters(readBytes: 400, writeBytes: 200))
     }
@@ -78,7 +78,7 @@ struct BatteryParserTests {
         "Max Capacity": NSNumber(value: 100),
         "Is Charging": false,
         "Power Source State": "Battery Power",
-        "Time to Empty": NSNumber(value: 210),
+        "Time to Empty": NSNumber(value: 210)
     ]
 
     @Test("reads charge, power state, and time to empty while discharging")
@@ -129,7 +129,7 @@ struct BatteryParserTests {
     func healthFromRegistry() {
         let health = BatteryParser.health(registry: [
             "DesignCapacity": NSNumber(value: 6000),
-            "AppleRawMaxCapacity": NSNumber(value: 5460),
+            "AppleRawMaxCapacity": NSNumber(value: 5460)
         ])
         #expect(health != nil)
         #expect(abs((health ?? 0) - 91) < 0.01)
@@ -139,7 +139,7 @@ struct BatteryParserTests {
     func healthFallback() {
         let health = BatteryParser.health(registry: [
             "DesignCapacity": NSNumber(value: 1000),
-            "NominalChargeCapacity": NSNumber(value: 800),
+            "NominalChargeCapacity": NSNumber(value: 800)
         ])
         #expect(health == 80)
     }
@@ -148,7 +148,7 @@ struct BatteryParserTests {
     func healthBounds() {
         #expect(BatteryParser.health(registry: ["AppleRawMaxCapacity": NSNumber(value: 5)]) == nil)
         let over = BatteryParser.health(registry: [
-            "DesignCapacity": NSNumber(value: 100), "AppleRawMaxCapacity": NSNumber(value: 130),
+            "DesignCapacity": NSNumber(value: 100), "AppleRawMaxCapacity": NSNumber(value: 130)
         ])
         #expect(over == 100)
     }

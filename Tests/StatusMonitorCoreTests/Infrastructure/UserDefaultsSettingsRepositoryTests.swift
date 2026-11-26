@@ -39,7 +39,9 @@ struct UserDefaultsSettingsRepositoryTests {
     @Test("unknown collector names in stored preferences are ignored, not crashed on")
     func unknownCollectorIgnored() {
         let defaults = makeDefaults()
-        defaults.set(["gpu": false, "holographicDisplay": true], forKey: UserDefaultsSettingsRepository.Key.collectorOverrides)
+        defaults.set(
+            ["gpu": false, "holographicDisplay": true],
+            forKey: UserDefaultsSettingsRepository.Key.collectorOverrides)
         let loaded = UserDefaultsSettingsRepository(defaults: defaults).load()
         #expect(loaded.collectorOverrides == [.gpu: false])
     }
@@ -49,11 +51,11 @@ struct UserDefaultsSettingsRepositoryTests {
 struct MetricSettingsTests {
     @Test("defaults show CPU and network, percent mode, loopback off, no allow-list")
     func documentedDefaults() {
-        let s = MetricSettings()
-        #expect(s.showCPU && s.showNetwork)
-        #expect(s.cpuMode == .percent)
-        #expect(!s.includeLoopback)
-        #expect(s.allowedInterfaces.isEmpty)
+        let settings = MetricSettings()
+        #expect(settings.showCPU && settings.showNetwork)
+        #expect(settings.cpuMode == .percent)
+        #expect(!settings.includeLoopback)
+        #expect(settings.allowedInterfaces.isEmpty)
     }
 
     @Test("a supported collector with no override is enabled by default")

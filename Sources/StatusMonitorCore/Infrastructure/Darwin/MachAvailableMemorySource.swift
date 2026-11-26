@@ -11,12 +11,12 @@ public struct MachAvailableMemorySource: AvailableMemorySource {
             MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size
         )
         let capacity = Int(count)
-        let kr = withUnsafeMutablePointer(to: &stats) { ptr in
+        let kernelResult = withUnsafeMutablePointer(to: &stats) { ptr in
             ptr.withMemoryRebound(to: integer_t.self, capacity: capacity) {
                 host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
             }
         }
-        guard kr == KERN_SUCCESS else { return nil }
+        guard kernelResult == KERN_SUCCESS else { return nil }
 
         return AvailableMemoryCalculator.availableBytes(
             freePages: UInt64(stats.free_count),

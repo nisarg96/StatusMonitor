@@ -143,11 +143,17 @@ struct FakeSources {
 }
 
 extension InterfaceCounters {
-    static func active(_ name: String, rx: UInt32 = 0, tx: UInt32 = 0) -> InterfaceCounters {
-        InterfaceCounters(name: name, isUp: true, isRunning: true, isLoopback: false, rxBytes: rx, txBytes: tx)
+    static func active(
+        _ name: String, rx receivedBytes: UInt32 = 0, tx transmittedBytes: UInt32 = 0
+    ) -> InterfaceCounters {
+        InterfaceCounters(
+            name: name, isUp: true, isRunning: true, isLoopback: false,
+            rxBytes: receivedBytes, txBytes: transmittedBytes)
     }
 
-    static func loopback(rx: UInt32 = 0, tx: UInt32 = 0) -> InterfaceCounters {
-        InterfaceCounters(name: "lo0", isUp: true, isRunning: true, isLoopback: true, rxBytes: rx, txBytes: tx)
+    static func loopback(rx receivedBytes: UInt32 = 0, tx transmittedBytes: UInt32 = 0) -> InterfaceCounters {
+        InterfaceCounters(
+            name: "lo0", isUp: true, isRunning: true, isLoopback: true,
+            rxBytes: receivedBytes, txBytes: transmittedBytes)
     }
 }

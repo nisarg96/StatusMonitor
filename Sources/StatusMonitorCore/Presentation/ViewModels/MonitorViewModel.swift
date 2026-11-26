@@ -11,7 +11,8 @@ public final class MonitorViewModel: ObservableObject {
     public static let openInterval: TimeInterval = 2
     public static let closedInterval: TimeInterval = 5
 
-    @Published public private(set) var snapshot = SystemSnapshot()
+    /// Unsampled until the first refresh, so nothing is drawn as a real value before there is one.
+    @Published public private(set) var snapshot = SystemSnapshot(isSampled: false)
     @Published public private(set) var statusTitle = ""
     /// Menu bar items as icon + value pairs. The status bar draws these, so the plain `statusTitle` is only a fallback.
     @Published public private(set) var statusSegments: [TitleSegment] = []
@@ -26,6 +27,9 @@ public final class MonitorViewModel: ObservableObject {
     @Published public private(set) var candidateItems: [MetricItemID] = []
     /// Recent samples per series. Published so the cards and their charts redraw as values arrive.
     @Published public private(set) var histories: [HistorySeries: SampleHistory] = [:]
+    /// The same series as `histories`, with each value's wall-clock time. The popover charts use these, so hover
+    /// tooltips show the real time of a sample, including across a sleep gap.
+    @Published public private(set) var timedHistories: [HistorySeries: TimedSampleHistory] = [:]
     /// Network totals for the current day, shown on the network card.
     @Published public private(set) var dailyTraffic: DailyTraffic?
     private let trafficStore: DailyTrafficStore?
@@ -117,7 +121,8 @@ public final class MonitorViewModel: ObservableObject {
         let visible = canonical
             .filter { item in
                 currentSettings.isMenuBarItemVisible(item, capabilities: capabilities)
-                    && !MenuBarGlyphBuilder.isIdle(item, snapshot: snapshot, config: currentSettings.itemConfig(for: item))
+                    && !MenuBarGlyphBuilder.isIdle(
+                        item, snapshot: snapshot, config: currentSettings.itemConfig(for: item))
             }
             .sorted { lhs, rhs in
                 // The Settings list order is the bar order. Priority decides what hides first, not where items sit.
@@ -156,23 +161,29 @@ public final class MonitorViewModel: ObservableObject {
         itemGlyphs = glyphs
     }
 
-    /// Adds this tick's network traffic to today's total. The interval is the cadence in use, since that is how long the rate covers.
+    /// Adds the bytes that moved since the last sample to today's total. The use case measures them from the
+    /// clock, so a sleep or wake gap is counted by its real traffic rather than by the nominal interval.
     private func recordTraffic() {
-        let seconds = popoverOpen ? Self.openInterval : Self.closedInterval
         let day = DailyTraffic.dayKey(for: Date())
+        // The per-sample values are already byte totals, so a one-second window adds them unchanged.
         let updated = DailyTraffic.accumulate(
             into: dailyTraffic, day: day,
-            downBytesPerSecond: snapshot.downBps, upBytesPerSecond: snapshot.upBps, seconds: seconds
+            downBytesPerSecond: snapshot.downBytesSinceLastSample,
+            upBytesPerSecond: snapshot.upBytesSinceLastSample,
+            seconds: 1
         )
         dailyTraffic = updated
         trafficStore?.save(updated)
     }
 
     /// Appends this tick's values to each series that has a reading. Missing readings are skipped, not zero-filled.
+    /// Every value from one tick shares one timestamp, so paired series (up and down, read and write) line up.
     private func recordHistory() {
+        let tick = Date()
         func record(_ series: HistorySeries, _ value: Double?) {
             guard let value else { return }
             histories[series, default: SampleHistory()].append(value)
+            timedHistories[series, default: TimedSampleHistory()].append(value, at: tick)
         }
         record(.cpu, snapshot.cpuPercent)
         if physicalMemoryBytes > 0 {

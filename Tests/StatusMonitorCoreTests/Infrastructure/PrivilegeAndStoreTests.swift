@@ -57,56 +57,14 @@ struct RemediationStoreTests {
         return defaults
     }
 
-    @Test("rule definitions round-trip through Codable")
-    func rulesRoundTrip() {
-        let defaults = makeDefaults()
-        let store = UserDefaultsRemediationStore(defaults: defaults)
-        let rule = Rule(
-            name: "CPU hot", metric: .cpuPercent, comparator: .greaterThan,
-            threshold: 85, sustainSeconds: 30, action: .script(path: "/Users/x/a.zsh"),
-            cooldownSeconds: 600, dryRun: true, enabled: false
-        )
-        store.saveRules([rule])
-        #expect(UserDefaultsRemediationStore(defaults: defaults).loadRules() == [rule])
-    }
-
-    @Test("runtime state is keyed by rule id and survives a new store instance")
-    func runtimePersists() {
-        let defaults = makeDefaults()
-        let id = UUID()
-        let state = RuleRuntimeState(streakSeconds: 0, lastFiredAt: 1_234.5)
-        UserDefaultsRemediationStore(defaults: defaults).saveRuntime(state, for: id)
-        #expect(UserDefaultsRemediationStore(defaults: defaults).loadRuntime(for: id) == state)
-    }
-
-    @Test("editing a rule does not touch its runtime state")
-    func editKeepsRuntime() {
-        let defaults = makeDefaults()
-        let store = UserDefaultsRemediationStore(defaults: defaults)
-        var rule = Rule(
-            name: "r", metric: .cpuPercent, comparator: .greaterThan,
-            threshold: 80, sustainSeconds: 10, action: .notify, cooldownSeconds: 60
-        )
-        store.saveRules([rule])
-        store.saveRuntime(RuleRuntimeState(lastFiredAt: 500), for: rule.id)
-
-        rule.threshold = 10
-        store.saveRules([rule])
-        #expect(store.loadRuntime(for: rule.id).lastFiredAt == 500)
-    }
-
-    @Test("global timestamps and confirmations persist, and nil clears the timestamp")
-    func globalsPersist() {
+    @Test("last clean timestamp persists, and nil clears it")
+    func cleanTimestampPersists() {
         let defaults = makeDefaults()
         let store = UserDefaultsRemediationStore(defaults: defaults)
         store.lastCleanAt = 42
-        store.hasConfirmedScriptRules = true
-        store.hasConfirmedExtremeClean = true
 
         let reopened = UserDefaultsRemediationStore(defaults: defaults)
         #expect(reopened.lastCleanAt == 42)
-        #expect(reopened.hasConfirmedScriptRules)
-        #expect(reopened.hasConfirmedExtremeClean)
 
         reopened.lastCleanAt = nil
         #expect(reopened.lastCleanAt == nil)

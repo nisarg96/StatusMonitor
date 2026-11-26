@@ -1,0 +1,5 @@
+# SwiftLint configuration. Default rules, with build output excluded.
+excluded:
+  - .build
+  - build
+  - .swiftpm

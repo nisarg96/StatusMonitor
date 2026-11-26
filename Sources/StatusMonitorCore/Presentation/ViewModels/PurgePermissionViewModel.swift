@@ -19,10 +19,16 @@ public final class PurgePermissionViewModel: ObservableObject {
     private let service: PurgePermissionService
     private let userName: String
     private let runner: Runner
+    /// Bumped by every operation. A result from an older operation is dropped, so a late refresh cannot
+    /// overwrite `.working` or a newer change. Only touched on the main thread.
+    private var generation = 0
 
     /// The default runner does the work on a background queue and delivers the result on the main queue.
     /// Tests pass a synchronous runner, so they see the final state without waiting.
-    public init(service: PurgePermissionService, userName: String, runner: @escaping Runner = PurgePermissionViewModel.backgroundRunner) {
+    public init(
+        service: PurgePermissionService, userName: String,
+        runner: @escaping Runner = PurgePermissionViewModel.backgroundRunner
+    ) {
         self.service = service
         self.userName = userName
         self.runner = runner
@@ -35,9 +41,19 @@ public final class PurgePermissionViewModel: ObservableObject {
         }
     }
 
-    /// Reads the current state. Never prompts.
+    /// Reads the current state. Never prompts. The check runs through the runner, so `sudo -n -l`
+    /// never blocks the main thread.
     public func refresh() {
-        state = service.isInstalled() ? .installed : .notInstalled
+        guard state != .working else { return }
+        generation += 1
+        let token = generation
+        let service = self.service
+        runner({
+            service.isInstalled() ? .installed : .notInstalled
+        }, { [weak self] outcome in
+            guard let self, self.generation == token else { return }
+            self.state = outcome
+        })
     }
 
     public func install() {
@@ -57,6 +73,8 @@ public final class PurgePermissionViewModel: ObservableObject {
 
     private func performChange(_ change: @escaping () throws -> Void) {
         state = .working
+        generation += 1
+        let token = generation
         let service = self.service
         runner({
             do {
@@ -66,7 +84,8 @@ public final class PurgePermissionViewModel: ObservableObject {
                 return .failed(error.localizedDescription)
             }
         }, { [weak self] outcome in
-            self?.state = outcome
+            guard let self, self.generation == token else { return }
+            self.state = outcome
         })
     }
 }
