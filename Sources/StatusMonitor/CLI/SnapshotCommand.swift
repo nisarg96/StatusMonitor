@@ -80,7 +80,6 @@ enum SnapshotCommand {
 
         let panes: [(file: String, pane: SettingsPane)] = [
             ("settings-menu-bar-items.png", .menuBarItems),
-            ("settings-general.png", .general),
             ("settings-memory-clean.png", .memoryClean)
         ]
         for entry in panes {
