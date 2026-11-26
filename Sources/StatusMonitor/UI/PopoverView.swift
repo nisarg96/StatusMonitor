@@ -16,6 +16,8 @@ struct PopoverView: View {
     @ObservedObject var monitor: MonitorViewModel
     /// When set, the popover shows only that status bar item's card. Nil shows every card.
     var only: MetricItemID?
+    /// When true, the popover shows only the Memory Clean card. Used for its own image.
+    var cleanOnly: Bool = false
     /// Opens the Settings window.
     let openSettings: () -> Void
     /// Memory Clean. Nil leaves the clean buttons disabled until the app passes the view model in.
@@ -34,20 +36,24 @@ struct PopoverView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
                 header
-                cpuSection(metrics)
-                gpuSection(metrics, caps)
-                pressureSection(metrics, caps, rows)
-                diskSection(metrics, caps)
-                batterySection(metrics, caps, rows)
-                thermalSection(metrics, caps, rows)
-                networkSection(metrics)
-                if only == nil {
+                if cleanOnly {
                     cleanSection(metrics)
-                    PopoverLoginRow(
-                        opensAtLogin: settings.opensAtLogin,
-                        errorText: settings.loginItemError,
-                        onChange: { settings.setOpensAtLogin($0) }
-                    )
+                } else {
+                    cpuSection(metrics)
+                    gpuSection(metrics, caps)
+                    pressureSection(metrics, caps, rows)
+                    diskSection(metrics, caps)
+                    batterySection(metrics, caps, rows)
+                    thermalSection(metrics, caps, rows)
+                    networkSection(metrics)
+                    if only == nil {
+                        cleanSection(metrics)
+                        PopoverLoginRow(
+                            opensAtLogin: settings.opensAtLogin,
+                            errorText: settings.loginItemError,
+                            onChange: { settings.setOpensAtLogin($0) }
+                        )
+                    }
                 }
                 footer
             }

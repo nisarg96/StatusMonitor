@@ -25,7 +25,7 @@ Each card is also rendered on its own, in light and dark. Light versions are sho
 | CPU and memory | ![CPU and memory card](docs/images/card-cpu-light.png) | GPU | ![GPU card](docs/images/card-gpu-light.png) |
 | Memory pressure | ![Memory pressure card](docs/images/card-memoryPressure-light.png) | Disk I/O | ![Disk I/O card](docs/images/card-disk-light.png) |
 | Battery | ![Battery card](docs/images/card-battery-light.png) | Temperature and fans | ![Temperature and fans card](docs/images/card-thermal-light.png) |
-| Network and speed test | ![Network and speed test card](docs/images/card-network-light.png) |  |  |
+| Network and speed test | ![Network and speed test card](docs/images/card-network-light.png) | Memory Clean | ![Memory Clean card](docs/images/card-memory-clean-light.png) |
 
 ![Settings: menu bar items](docs/images/settings-menu-bar-items.png)
 
