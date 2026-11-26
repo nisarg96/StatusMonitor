@@ -181,7 +181,8 @@ public final class SettingsViewModel: ObservableObject {
      Shows or hides an item in the menu bar.
 
      Turning an item on also turns its card on, because an item whose metric is switched off cannot be shown. Turning
-     it off only hides it from the bar. RAM has no switch of its own, because it is merged into CPU.
+     the Battery item on also turns on its menu bar percentage, which the item needs to be visible. Turning an item off
+     only hides it from the bar. RAM has no switch of its own, because it is merged into CPU.
 
      - Parameters:
        - item: The status bar item.
@@ -205,6 +206,9 @@ public final class SettingsViewModel: ObservableObject {
                     }
                 }
             }
+        }
+        if shown, item == .battery {
+            setBatteryDetail(.menuBarCharge, shown: true)
         }
     }
 

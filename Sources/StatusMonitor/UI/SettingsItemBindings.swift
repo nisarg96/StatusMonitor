@@ -9,27 +9,19 @@ struct SettingsItemBindings {
     let monitor: MonitorViewModel
 
     /**
-     Returns whether this Mac can provide a menu bar item.
-
-     Items it cannot provide stay off and show why.
-
-     - Parameter item: The menu bar item.
-     - Returns: True when the item's collector is available, or when the item has no collector.
-     */
-    func isSupported(_ item: MetricItemID) -> Bool {
-        guard let collector = SettingsItemPresentation.collector(for: item) else { return true }
-        return monitor.capabilities.supports(collector)
-    }
-
-    /**
      Returns a binding to whether an item is shown in the menu bar.
 
-     - Parameter item: The menu bar item.
+     The getter returns `current`, which the parent passes from the settings, so the control redraws when the settings
+     change. The setter writes through the settings view model.
+
+     - Parameters:
+       - item: The menu bar item.
+       - current: Whether the item is shown now.
      - Returns: The binding.
      */
-    func shown(_ item: MetricItemID) -> Binding<Bool> {
+    func shown(_ item: MetricItemID, current: Bool) -> Binding<Bool> {
         Binding(
-            get: { settings.settings.isMenuBarItemVisible(item, capabilities: monitor.capabilities) },
+            get: { current },
             set: { settings.setItemInMenuBar(item, shown: $0) }
         )
     }
@@ -37,12 +29,17 @@ struct SettingsItemBindings {
     /**
      Returns a binding to an item's menu bar priority.
 
-     - Parameter item: The menu bar item.
+     The getter returns `current`, which the parent passes from the settings. The setter writes through the settings
+     view model.
+
+     - Parameters:
+       - item: The menu bar item.
+       - current: The item's priority now.
      - Returns: The binding.
      */
-    func priority(_ item: MetricItemID) -> Binding<MenuBarPriority> {
+    func priority(_ item: MetricItemID, current: MenuBarPriority) -> Binding<MenuBarPriority> {
         Binding(
-            get: { settings.settings.priority(for: item) },
+            get: { current },
             set: { settings.setMenuBarPriority(item, $0) }
         )
     }

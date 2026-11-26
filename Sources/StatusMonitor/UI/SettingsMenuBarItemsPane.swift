@@ -33,7 +33,14 @@ struct SettingsMenuBarItemsPane: View {
         let bindings = SettingsItemBindings(settings: settings, monitor: monitor)
         return List(selection: $navigation.selected) {
             ForEach(SettingsItemPresentation.listedItems(order: settings.settings.menuBarOrder), id: \.self) { item in
-                SettingsItemRow(item: item, config: settings.settings.itemConfig(for: item), bindings: bindings)
+                SettingsItemRow(
+                    item: item,
+                    config: settings.settings.itemConfig(for: item),
+                    state: SettingsItemRowState(
+                        item: item, settings: settings.settings, capabilities: monitor.capabilities
+                    ),
+                    bindings: bindings
+                )
                     .tag(item)
             }
             .onMove { source, destination in
