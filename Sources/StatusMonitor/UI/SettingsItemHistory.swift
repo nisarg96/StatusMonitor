@@ -3,7 +3,9 @@ import SwiftUI
 
 /// The item's recent history, drawn the same way as on its card. Shown only once there are samples.
 struct SettingsItemHistory: View {
+    /// The menu bar item whose history is shown.
     let item: MetricItemID
+    /// The monitor that supplies the histories.
     @ObservedObject var monitor: MonitorViewModel
 
     var body: some View {
@@ -18,6 +20,13 @@ struct SettingsItemHistory: View {
         }
     }
 
+    /**
+     Formats a value of an item's history for display.
+
+     - Parameter item: The menu bar item the value belongs to.
+     - Parameter value: The value to format.
+     - Returns: A rate for network and disk, a temperature for thermal, and a percent otherwise.
+     */
     static func format(_ item: MetricItemID, _ value: Double) -> String {
         switch item {
         case .network, .disk: return Format.rate(value)
@@ -26,6 +35,13 @@ struct SettingsItemHistory: View {
         }
     }
 
+    /**
+     Returns the chart series for an item, with their colours and dash styles.
+
+     - Parameter item: The menu bar item.
+     - Parameter histories: The histories keyed by series.
+     - Returns: The series to chart. Items with no history return an empty list.
+     */
     static func series(for item: MetricItemID, histories: [HistorySeries: SampleHistory]) -> [ChartSeries] {
         func values(_ key: HistorySeries) -> [Double] { histories[key]?.values ?? [] }
         switch item {

@@ -3,6 +3,7 @@ import SwiftUI
 
 /// The recent cleans, newest first: time, type and memory freed.
 struct MemoryCleanRecentList: View {
+    /// The clean view model whose `recent` cleans are listed.
     @ObservedObject var model: MemoryCleanViewModel
 
     var body: some View {

@@ -1,8 +1,12 @@
 import Foundation
 
-/// Persists `MetricSettings` in UserDefaults under stable keys.
-/// Inject a suite-named `UserDefaults` in tests to keep them isolated from the real preferences.
+/**
+ Persists `MetricSettings` in UserDefaults under stable keys.
+
+ Inject a suite-named `UserDefaults` in tests to keep them isolated from the real preferences.
+ */
 public final class UserDefaultsSettingsRepository: SettingsRepository {
+    /// Stable UserDefaults keys. Renaming one loses the value the user already saved.
     enum Key {
         static let showCPU = "showCPU"
         static let cpuMode = "cpuMode"
@@ -22,13 +26,27 @@ public final class UserDefaultsSettingsRepository: SettingsRepository {
 
     private let defaults: UserDefaults
 
+    /**
+     Creates a repository backed by a UserDefaults domain.
+
+     - Parameters:
+       - defaults: The defaults database to read and write.
+     */
     public init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
     }
 
+    /**
+     Reads the settings, applying defaults for every key that has no usable stored value.
+
+     Unknown collector, battery-detail, menu-bar and priority names are dropped, so old or newer preference files
+     still load. Without a stored hidden-items list, the crowded-bar defaults apply; a stored empty list means
+     show everything.
+
+     - Returns: The stored settings merged with the defaults.
+     */
     public func load() -> MetricSettings {
         var overrides: [CollectorKind: Bool] = [:]
-        // Unknown names are dropped. This keeps old preferences safe if a collector is removed later.
         for (name, value) in defaults.dictionary(forKey: Key.collectorOverrides) as? [String: Bool] ?? [:] {
             if let kind = CollectorKind(rawValue: name) {
                 overrides[kind] = value
@@ -38,7 +56,6 @@ public final class UserDefaultsSettingsRepository: SettingsRepository {
         let hidden = (defaults.stringArray(forKey: Key.hiddenBatteryDetails) ?? [])
             .compactMap { BatteryDetail(rawValue: $0) }
 
-        // Without a stored value, the crowded-bar defaults apply. A stored empty list means "show everything".
         let hiddenItems: Set<MenuBarItem>
         if let stored = defaults.stringArray(forKey: Key.hiddenMenuBarItems) {
             hiddenItems = Set(stored.compactMap { MenuBarItem(rawValue: $0) })
@@ -65,6 +82,12 @@ public final class UserDefaultsSettingsRepository: SettingsRepository {
         )
     }
 
+    /**
+     Writes every field of the settings to UserDefaults.
+
+     - Parameters:
+       - settings: The settings to store.
+     */
     public func save(_ settings: MetricSettings) {
         defaults.set(settings.showCPU, forKey: Key.showCPU)
         defaults.set(settings.cpuMode.rawValue, forKey: Key.cpuMode)

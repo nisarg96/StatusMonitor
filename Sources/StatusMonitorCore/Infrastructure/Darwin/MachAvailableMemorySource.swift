@@ -1,10 +1,22 @@
 import Darwin
 
-/// Available memory from host_statistics64, using AvailableMemoryCalculator (free + inactive + purgeable).
-/// Returns nil when the kernel call fails, so a clean reports "unmeasured" instead of a guessed number.
+/**
+ Reads available RAM with `host_statistics64`, using `AvailableMemoryCalculator`.
+
+ Available = free + inactive + purgeable pages. Returns nil when the kernel call fails, so a clean reports
+ "unmeasured" instead of a guessed number.
+ */
 public struct MachAvailableMemorySource: AvailableMemorySource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
+    /**
+     Reads available RAM in bytes.
+
+     The page count is multiplied by the system page size.
+
+     - Returns: Available bytes, or nil when the kernel call fails.
+     */
     public func readAvailableBytes() -> UInt64? {
         var stats = vm_statistics64_data_t()
         var count = mach_msg_type_number_t(

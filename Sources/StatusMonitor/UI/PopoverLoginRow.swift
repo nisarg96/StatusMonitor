@@ -2,8 +2,11 @@ import SwiftUI
 
 /// The "Open at login" switch, with the last failure from changing it shown underneath.
 struct PopoverLoginRow: View {
+    /// The current login item state.
     let opensAtLogin: Bool
+    /// The message from the last failed change, or nil to hide it.
     let errorText: String?
+    /// Called with the requested state when the switch is flipped.
     let onChange: (Bool) -> Void
 
     var body: some View {

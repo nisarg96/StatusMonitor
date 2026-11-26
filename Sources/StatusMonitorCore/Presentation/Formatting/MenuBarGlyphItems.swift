@@ -2,6 +2,13 @@ import Foundation
 
 /// Glyph builders for the CPU, RAM, GPU, memory pressure, temperature and battery items.
 enum MenuBarGlyphItems {
+    /**
+     Builds the glyph for the CPU item in CPU percent mode.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style.
+     */
     static func cpu(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         let value = inputs.snapshot.cpuPercent
         let alert = inputs.isAlert(value)
@@ -18,13 +25,31 @@ enum MenuBarGlyphItems {
         }
     }
 
-    /// CPU item in RAM mode: used RAM in GB, coloured by the RAM threshold. The CPU icon stays.
+    /**
+     Builds the CPU item in RAM mode, showing used RAM in GB.
+
+     The value is coloured by the RAM threshold. The CPU icon stays.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph, or nil until the Mac's physical memory is known.
+     */
     static func cpuMemory(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let percent = inputs.ramUsedPercent else { return nil }
         let accent = RAMAlertLevel.level(usedPercent: percent, thresholdPercent: inputs.ramThresholdPercent)
         return .level(symbol: MetricSymbol.cpu, value: Format.gib(inputs.snapshot.memoryUsedBytes), accent: accent)
     }
 
+    /**
+     Builds the RAM item.
+
+     The RAM item shows used RAM as a percentage, or in GB for the sparkline style. Its colour follows the RAM
+     threshold: orange within 10 points below it, red at it.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style, or nil until the Mac's physical memory is known.
+     */
     static func ram(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let percent = inputs.ramUsedPercent else { return nil }
         let alert = inputs.isAlert(percent)
@@ -36,13 +61,19 @@ enum MenuBarGlyphItems {
             return .sparkline(symbol: MetricSymbol.memory, levels: inputs.levels(.ram, percentScale: true),
                               value: Format.gib(inputs.snapshot.memoryUsedBytes), alert: alert)
         default:
-            // RAM follows the RAM threshold: orange within 10 points below it, red at it.
             let accent = RAMAlertLevel.level(usedPercent: percent, thresholdPercent: inputs.ramThresholdPercent)
             return .level(symbol: MetricSymbol.memory, value: Format.gib(inputs.snapshot.memoryUsedBytes),
                           accent: accent)
         }
     }
 
+    /**
+     Builds the GPU item.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style, or nil when there is no GPU reading.
+     */
     static func gpu(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let gpu = inputs.snapshot.gpu else { return nil }
         let value = gpu.utilizationPercent
@@ -58,7 +89,15 @@ enum MenuBarGlyphItems {
         }
     }
 
-    /// Memory pressure: icon only by default. Its value style shows the level's label.
+    /**
+     Builds the memory pressure item.
+
+     Icon only by default. Its value style shows the level's label.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph, or nil when there is no memory pressure reading.
+     */
     static func memoryPressure(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let level = inputs.snapshot.memoryPressure else { return nil }
         if inputs.style == .icon {
@@ -67,6 +106,13 @@ enum MenuBarGlyphItems {
         return .text(symbol: MetricSymbol.memoryPressure, value: level.label, alert: level != .normal)
     }
 
+    /**
+     Builds the temperature item.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style, or nil when there is no CPU temperature.
+     */
     static func thermal(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let temperature = inputs.snapshot.thermal?.cpuTemperatureC else { return nil }
         let alert = inputs.isAlert(temperature)
@@ -77,12 +123,28 @@ enum MenuBarGlyphItems {
         return .text(symbol: MetricSymbol.thermal, value: degrees(temperature), alert: alert)
     }
 
-    /// Degrees with no unit letter, as the menu bar shows temperature. The popover keeps "°C".
+    /**
+     Formats a temperature as degrees with no unit letter, such as "54°".
+
+     The popover keeps "°C".
+
+     - Parameters:
+       - celsius: The temperature, in degrees Celsius.
+     - Returns: The temperature rounded to a whole degree, with the degree sign.
+     */
     static func degrees(_ celsius: Double) -> String {
         "\(Int(celsius.rounded()))°"
     }
 
-    /// Battery never alerts: it has no threshold in the bar.
+    /**
+     Builds the battery item.
+
+     The battery never alerts, because the bar has no battery threshold.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style, or nil when there is no battery charge reading.
+     */
     static func battery(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let battery = inputs.snapshot.battery, let percent = battery.currentPercent else { return nil }
         let symbol = MetricSymbol.battery(percent: percent, charging: battery.isCharging)

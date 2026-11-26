@@ -3,6 +3,7 @@ import SwiftUI
 
 /// The General page: appearance, startup, battery readings and the network counting options.
 struct SettingsGeneralPane: View {
+    /// The settings and the login item state that the page edits.
     @ObservedObject var settings: SettingsViewModel
 
     var body: some View {

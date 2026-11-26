@@ -2,7 +2,7 @@ import StatusMonitorCore
 import SwiftUI
 
 extension AppearanceMode {
-    /// Nil means "follow the system", which SwiftUI treats as no override.
+    /// The SwiftUI colour scheme for this mode, or nil to follow the system.
     var colorScheme: ColorScheme? {
         switch self {
         case .system: return nil
@@ -11,6 +11,7 @@ extension AppearanceMode {
         }
     }
 
+    /// The name of this mode in the Settings theme picker.
     var label: String {
         switch self {
         case .system: return "System"

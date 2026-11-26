@@ -3,8 +3,11 @@ import SwiftUI
 
 /// The option rows under the style: hide when idle (rates only), the warning threshold, and the click action.
 struct SettingsItemOptions: View {
+    /// The menu bar item being configured.
     let item: MetricItemID
+    /// The item's current configuration, which decides which controls are enabled.
     let config: MenuBarItemConfig
+    /// The bindings that the controls write through.
     let bindings: SettingsItemBindings
 
     var body: some View {
@@ -44,6 +47,13 @@ struct SettingsItemOptions: View {
         }
     }
 
+    /**
+     Returns a compact numeric text field.
+
+     - Parameter value: The binding that the field reads and writes.
+     - Parameter width: The field's width, in points.
+     - Returns: The field.
+     */
     private func numberField(_ value: Binding<Double>, width: CGFloat) -> some View {
         TextField("", value: value, format: .number)
             .textFieldStyle(.roundedBorder)

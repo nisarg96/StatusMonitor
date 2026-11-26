@@ -1,10 +1,16 @@
 import Foundation
 
-/// One executed step of a clean, with its exit code and the available-memory delta it produced.
+/**
+ One executed step of a clean, with its exit code and the available-memory delta it produced.
+ */
 public struct CleanStep: Equatable, Sendable {
+    /// The step's label, such as `purge`, `memory_pressure -l warn` or `purge (second pass)`.
     public let name: String
+    /// The exit code of the step's command.
     public let exitCode: Int32?
+    /// Available memory in bytes before the step, or nil when that reading is missing.
     public let availableBeforeBytes: UInt64?
+    /// Available memory in bytes after the step, or nil when that reading is missing.
     public let availableAfterBytes: UInt64?
 
     /// Change in available memory across this step. Nil when either reading is missing. Never estimated.
@@ -16,9 +22,13 @@ public struct CleanStep: Equatable, Sendable {
 
 /// Result of one clean attempt. A skipped attempt has no steps and carries the reason.
 public struct CleanOutcome: Equatable, Sendable {
+    /// The preset that was requested.
     public let preset: CleanPreset
+    /// What started the clean. The Clean now buttons pass `manual` and Auto Clean passes `auto`.
     public let trigger: String
+    /// Why the clean did not run, or nil when it ran.
     public let skippedReason: String?
+    /// The executed steps, in order. Empty when the clean was skipped.
     public let steps: [CleanStep]
 
     /// Total change from before the first step to after the last. Nil when skipped or unmeasurable.
@@ -30,18 +40,25 @@ public struct CleanOutcome: Equatable, Sendable {
     }
 }
 
-/// Runs Standard and Extreme Clean. Each step is measured and logged, so reported deltas are real measurements.
-///
-/// One instance is shared by Auto Clean and the Clean now buttons. Its clean slot allows one clean at a time: a clean
-/// that starts while another runs returns a skipped outcome.
+/**
+ Runs Standard and Extreme Clean.
+
+ Each step is measured and logged, so reported deltas are real measurements.
+
+ One instance is shared by Auto Clean and the Clean now buttons. Its clean slot allows one clean at a time: a clean
+ that starts while another runs returns a skipped outcome.
+ */
 public final class MemoryCleanUseCase {
     private let purge: PrivilegedPurgeExecutor
     private let pressure: MemoryPressureRunner
     private let memory: AvailableMemorySource
     private let log: RemediationLogWriter
     private let now: () -> Date
-    /// Called with the epoch second of each clean that ran (skips excluded). The composition root stores it as the
-    /// last-clean time, so the Auto Clean cooldown counts from manual cleans too.
+    /**
+     Called with the epoch second of each clean that ran. Skipped attempts are excluded.
+
+     The composition root stores it as the last-clean time, so the Auto Clean cooldown counts from manual cleans too.
+     */
     private let recordClean: (Double) -> Void
 
     /// Guards `cleanRunning` and `executedCleans`. Read and written from any thread.
@@ -49,6 +66,18 @@ public final class MemoryCleanUseCase {
     private var cleanRunning = false
     private var executedCleans = 0
 
+    /**
+     Creates the use case.
+
+     - Parameters:
+       - purge: Runs the privileged purge.
+       - pressure: Runs `memory_pressure -l warn`.
+       - memory: Reads the available memory before and after each step.
+       - log: Receives one entry per clean attempt, including skipped attempts.
+       - now: Returns the current time, used for log timestamps and the clean time. Injectable for tests.
+       - recordClean: Receives the epoch second of each clean that ran. The composition root stores it as the last-clean
+         time.
+     */
     public init(
         purge: PrivilegedPurgeExecutor,
         pressure: MemoryPressureRunner,
@@ -79,8 +108,13 @@ public final class MemoryCleanUseCase {
         return executedCleans
     }
 
-    /// Takes the shared clean slot. Returns false when a clean is already running. Each true return must be followed
-    /// by exactly one `runReservedClean`, which gives the slot back.
+    /**
+     Takes the shared clean slot.
+
+     Each true return must be followed by exactly one `runReservedClean`, which gives the slot back.
+
+     - Returns: False when a clean is already running, otherwise true.
+     */
     public func reserveCleanSlot() -> Bool {
         slotLock.lock()
         defer { slotLock.unlock() }
@@ -89,7 +123,14 @@ public final class MemoryCleanUseCase {
         return true
     }
 
-    /// Runs a clean. Returns a skipped outcome, with no steps, when another clean is running.
+    /**
+     Runs a clean.
+
+     - Parameters:
+       - preset: The clean to run.
+       - trigger: What started the clean, such as `manual` or `auto`. It is recorded in the log and the outcome.
+     - Returns: The outcome. It is skipped, with no steps, when another clean is running.
+     */
     public func clean(_ preset: CleanPreset, trigger: String) -> CleanOutcome {
         guard reserveCleanSlot() else {
             return logged(CleanOutcome(
@@ -100,7 +141,16 @@ public final class MemoryCleanUseCase {
         return runReservedClean(preset, trigger: trigger)
     }
 
-    /// Runs a clean whose slot the caller reserved with `reserveCleanSlot`. The slot is released when this returns.
+    /**
+     Runs a clean whose slot the caller reserved with `reserveCleanSlot`.
+
+     The slot is released when this returns.
+
+     - Parameters:
+       - preset: The clean to run.
+       - trigger: What started the clean, such as `manual` or `auto`. It is recorded in the log and the outcome.
+     - Returns: The outcome. It is skipped, with no steps, when the purge helper is not available.
+     */
     public func runReservedClean(_ preset: CleanPreset, trigger: String) -> CleanOutcome {
         defer { releaseCleanSlot() }
         guard purge.isAvailable() else {
@@ -114,13 +164,20 @@ public final class MemoryCleanUseCase {
         return logged(CleanOutcome(preset: preset, trigger: trigger, skippedReason: nil, steps: steps))
     }
 
+    /**
+     Runs the steps of a preset in order, measuring each one.
+
+     Standard purges inactive file-backed memory. It does not free wired memory or stop runaway processes. Extreme runs
+     purge, then `memory_pressure -l warn`, then a second purge.
+
+     - Parameter preset: The preset whose steps to run.
+     - Returns: The measured steps, in order.
+     */
     private func executeSteps(_ preset: CleanPreset) -> [CleanStep] {
         switch preset {
         case .standard:
-            // Standard: purge inactive file-backed memory. It does not free wired memory or stop runaway processes.
             return [measured(name: "purge") { purge.purge() }]
         case .extreme:
-            // Extreme: purge, then memory_pressure -l warn, then a second purge. Each step is measured separately.
             return [
                 measured(name: "purge") { purge.purge() },
                 measured(name: "memory_pressure -l warn") { pressure.run() },

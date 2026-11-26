@@ -2,6 +2,13 @@ import Foundation
 
 /// Glyph builders for the network and disk items, which report rates in two directions.
 enum MenuBarGlyphRates {
+    /**
+     Builds the network item from the download and upload rates.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style.
+     */
     static func network(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         let down = inputs.snapshot.downBps
         let upload = inputs.snapshot.upBps
@@ -18,6 +25,13 @@ enum MenuBarGlyphRates {
         }
     }
 
+    /**
+     Builds the disk item from the read and write rates.
+
+     - Parameters:
+       - inputs: The renderer inputs.
+     - Returns: The glyph for the current style, or nil when there is no disk reading.
+     */
     static func disk(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
         guard let disk = inputs.snapshot.disk else { return nil }
         let alert = inputs.isAlert(max(disk.readBps, disk.writeBps))

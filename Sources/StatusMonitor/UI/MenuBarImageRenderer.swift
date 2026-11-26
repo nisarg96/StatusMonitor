@@ -1,11 +1,13 @@
 import AppKit
 import StatusMonitorCore
 
-/// Draws one status bar item's glyph into an image. Drawing only; the decisions come from MenuBarGlyph.
-///
-/// Normal glyphs are template images, so they follow the menu bar's light or dark appearance. Warning and critical
-/// glyphs carry their own colours and add a shape as well (a triangle, or a filled item with "!"), so they still read
-/// in greyscale.
+/**
+ Draws one status bar item's glyph into an image. It only draws; the decisions come from `MenuBarGlyph`.
+
+ Normal glyphs are template images, so they follow the menu bar's light or dark appearance. Warning and critical
+ glyphs carry their own colours and add a shape as well (a triangle, or a filled item with "!"), so they still read
+ in greyscale.
+ */
 enum MenuBarImageRenderer {
     /// Canvas height. 20 pt leaves room for two stacked lines without clipping the top one.
     static let height: CGFloat = 20
@@ -19,11 +21,23 @@ enum MenuBarImageRenderer {
     private static let smallFont = NSFont.monospacedSystemFont(ofSize: 8, weight: .regular)
     private static let smallBoldFont = NSFont.monospacedSystemFont(ofSize: 8, weight: .bold)
 
-    /// Light and dark values for the alert states. Warning's pair is from the design spec. Critical's light fill is
-    /// from the spec; its dark fill is derived, because the spec gives none (see the report).
+    /**
+     Light and dark values for the alert states.
+
+     Warning's pair is from the design spec. Critical's light fill is from the spec; its dark fill is derived, because
+     the spec gives none (see the report).
+     */
     private static let warningColour = dynamicColour(light: 0xB4_530F, dark: 0xFF_9F5A)
     private static let criticalFill = dynamicColour(light: 0xC6_2828, dark: 0xE5_3935)
 
+    /**
+     Draws a glyph into an image for the status bar or a preview.
+
+     Critical levels add a leading "!", so the state reads without colour.
+
+     - Parameter glyph: The glyph to draw, decided by `MenuBarGlyph`.
+     - Returns: The image. Normal glyphs are templates.
+     */
     static func image(for glyph: MenuBarGlyph) -> NSImage {
         switch glyph {
         case let .text(symbol, value, alert):
@@ -33,7 +47,6 @@ enum MenuBarImageRenderer {
             return valueImage(symbol: nil, text: "\(title) \(value)", accent: alert ? .warning : .normal)
 
         case let .level(symbol, value, accent):
-            // Critical adds a leading "!", so the state reads without colour.
             let text = accent == .critical ? "! \(value)" : value
             return valueImage(symbol: symbol, text: text, accent: accent)
 
@@ -60,7 +73,12 @@ enum MenuBarImageRenderer {
         }
     }
 
-    /// The icon used for an item with no value yet, so it keeps its usual width.
+    /**
+     Returns the icon for an item with no value yet, so the item keeps its usual width.
+
+     - Parameter symbol: The SF Symbol name to draw.
+     - Returns: A template image of the symbol, or an empty image of the usual size when the symbol is missing.
+     */
     static func iconOnly(symbol: String) -> NSImage {
         let image = symbolImage(symbol) ?? NSImage(size: CGSize(width: 14, height: height))
         image.isTemplate = true
@@ -69,20 +87,38 @@ enum MenuBarImageRenderer {
 
     // MARK: - Glyph kinds
 
-    /// A value drawn as text. Warning uses bold digits, so the value reads at a glance.
+    /**
+     Draws a value as text, with an optional icon.
+
+     Warning uses bold digits, so the value reads at a glance. The slot is at least 40 pt wide, and longer values are
+     measured so they are not clipped.
+
+     - Parameter symbol: The SF Symbol name, or nil for no icon.
+     - Parameter text: The value text.
+     - Parameter accent: The alert accent that picks the font and colours.
+     - Returns: The image.
+     */
     private static func valueImage(symbol: String?, text: String, accent: ReadoutAccent) -> NSImage {
         let font = accent == .warning ? boldFont : textFont
-        // A fixed minimum keeps short values at their usual width; longer values are measured so they are not clipped.
         let width = max(40, textWidth(text, font: font))
         return compose(symbol: symbol, accent: accent, contentWidth: width) { origin, ink in
             drawText(text, at: origin, font: font, color: ink)
         }
     }
 
-    /// Two lines in the 20 pt canvas: the top line sits in the upper half, the bottom line in the lower half.
+    /**
+     Draws two lines in the 20 pt canvas: the top line in the upper half, the bottom line in the lower half.
+
+     The slot is sized to the wider line, so long rates like "↑ 1.2 MB/s" are not clipped.
+
+     - Parameter symbol: The SF Symbol name.
+     - Parameter top: The upper line.
+     - Parameter bottom: The lower line.
+     - Parameter accent: The alert accent that picks the font and colours.
+     - Returns: The image.
+     */
     private static func stackedImage(symbol: String, top: String, bottom: String, accent: ReadoutAccent) -> NSImage {
         let font = accent == .warning ? smallBoldFont : smallFont
-        // Size the slot to the wider line, so long rates like "↑ 1.2 MB/s" are not clipped.
         let width = max(textWidth(top, font: font), textWidth(bottom, font: font)) + 2
         return compose(symbol: symbol, accent: accent, contentWidth: width) { origin, ink in
             drawText(top, at: CGPoint(x: origin.x, y: 10), font: font, color: ink)
@@ -90,8 +126,16 @@ enum MenuBarImageRenderer {
         }
     }
 
-    /// Memory pressure: icon only. The needle position carries the level. Warning adds a triangle. Critical fills
-    /// the item red and adds a leading "!".
+    /**
+     Draws the memory pressure item as an icon only.
+
+     The needle position carries the level. Warning adds a triangle. Critical fills the item red and adds a leading "!".
+
+     Only the normal level is a template, so it matches the bar. Warning and critical carry their own colour.
+
+     - Parameter level: The memory pressure level to draw.
+     - Returns: The image. Only the normal level is a template.
+     */
     private static func pressureImage(level: MemoryPressureLevel) -> NSImage {
         let accent = pressureAccent(level)
         let ink = foreground(for: accent)
@@ -115,7 +159,6 @@ enum MenuBarImageRenderer {
             }
             return true
         }
-        // Normal stays a template so it matches the bar. Warning and critical carry their own colour.
         image.isTemplate = level == .normal
         return image
     }
@@ -130,6 +173,13 @@ enum MenuBarImageRenderer {
 
     // MARK: - Shapes
 
+    /**
+     Draws the last 12 levels as vertical bars.
+
+     - Parameter levels: The levels, from 0 to 1, oldest first.
+     - Parameter origin: The point where the content starts.
+     - Parameter ink: The fill colour.
+     */
     private static func drawBars(_ levels: [Double], origin: CGPoint, ink: NSColor) {
         ink.setFill()
         for (index, level) in levels.suffix(12).enumerated() {
@@ -139,6 +189,13 @@ enum MenuBarImageRenderer {
         }
     }
 
+    /**
+     Draws a 26 pt wide line through the levels.
+
+     - Parameter levels: The levels, from 0 to 1, oldest first. Nothing is drawn for fewer than two.
+     - Parameter origin: The point where the content starts.
+     - Parameter ink: The stroke colour.
+     */
     private static func drawSparkline(_ levels: [Double], origin: CGPoint, ink: NSColor) {
         guard levels.count > 1 else { return }
         let path = NSBezierPath()
@@ -154,6 +211,13 @@ enum MenuBarImageRenderer {
         path.stroke()
     }
 
+    /**
+     Draws a 14 pt ring with a faint track and an arc for the fraction.
+
+     - Parameter fraction: The filled share of the ring, clamped to 0...1.
+     - Parameter origin: The point where the content starts.
+     - Parameter ink: The arc colour. The track uses the same colour at 25% alpha.
+     */
     private static func drawRing(_ fraction: Double, origin: CGPoint, ink: NSColor) {
         let centre = CGPoint(x: origin.x + 7, y: origin.y + 7)
         let track = NSBezierPath(ovalIn: CGRect(x: centre.x - 6, y: centre.y - 6, width: 12, height: 12))
@@ -173,8 +237,19 @@ enum MenuBarImageRenderer {
 
     // MARK: - Composition
 
-    /// Lays out: icon, then a warning triangle if any, then the drawn content, then optional trailing text. The
-    /// content closure receives its origin and the ink colour for the accent. Critical fills the whole item.
+    /**
+     Lays out an item from left to right: the icon, the warning triangle if any, the drawn content, then optional
+     trailing text.
+
+     Critical fills the whole item. The content closure receives its origin and the ink colour for the accent.
+
+     - Parameter symbol: The SF Symbol name for the icon, or nil for no icon.
+     - Parameter accent: The alert accent, which picks the ink, the triangle and the fill.
+     - Parameter contentWidth: The width reserved for the content, in points.
+     - Parameter trailing: Text drawn after the content, or nil.
+     - Parameter content: Draws the content at the origin it receives, in the ink colour it receives.
+     - Returns: The image. Normal items are templates.
+     */
     private static func compose(
         symbol: String?,
         accent: ReadoutAccent,
@@ -213,7 +288,14 @@ enum MenuBarImageRenderer {
 
     // MARK: - Colour
 
-    /// Normal text follows the system label colour. Warning and critical use the alert pairs above.
+    /**
+     Returns the ink colour for an accent.
+
+     Normal text follows the system label colour. Warning and critical use the alert pairs above.
+
+     - Parameter accent: The alert accent.
+     - Returns: The colour to draw with.
+     */
     private static func foreground(for accent: ReadoutAccent) -> NSColor {
         switch accent {
         case .normal: return .labelColor
@@ -222,7 +304,13 @@ enum MenuBarImageRenderer {
         }
     }
 
-    /// A colour that resolves to `light` or `dark` for the appearance it is drawn in.
+    /**
+     Returns a colour that resolves to `light` or `dark` for the appearance it is drawn in.
+
+     - Parameter light: The colour as `0xRRGGBB` for light appearances.
+     - Parameter dark: The colour as `0xRRGGBB` for dark appearances.
+     - Returns: The dynamic colour.
+     */
     private static func dynamicColour(light: Int, dark: Int) -> NSColor {
         NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
@@ -239,11 +327,24 @@ enum MenuBarImageRenderer {
 
     // MARK: - Helpers
 
+    /**
+     Returns the named SF Symbol at the status bar's 12 pt regular size.
+
+     - Parameter name: The SF Symbol name.
+     - Returns: The image, or nil when the symbol does not exist.
+     */
     private static func symbolImage(_ name: String) -> NSImage? {
         let configuration = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
         return NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(configuration)
     }
 
+    /**
+     Returns a copy of an image filled with one colour, keeping its alpha.
+
+     - Parameter image: The image to tint.
+     - Parameter color: The colour to fill the image's opaque pixels with.
+     - Returns: The tinted copy, or the original image when it cannot be copied.
+     */
     private static func tint(_ image: NSImage, _ color: NSColor) -> NSImage {
         let tinted = image.copy() as? NSImage ?? image
         tinted.lockFocus()

@@ -1,13 +1,19 @@
 import Foundation
 
-/// Pure parsers that turn raw IOKit dictionaries into domain readings.
-/// They hold all the key-name knowledge, so the IOKit adapters stay thin and the logic is testable.
-
 /// Reads an IOKit numeric value defensively. Anything that is not a non-negative finite number is nil.
 enum IOValue {
     /// 2^64 as a Double. Any value at or above it does not fit in a UInt64, and converting it would trap.
     private static let uint64Limit: Double = 18_446_744_073_709_551_616
 
+    /**
+     Converts an IOKit value to a finite Double.
+
+     Accepts `NSNumber`, `Double` and `Int`.
+
+     - Parameters:
+       - value: The raw value from an IOKit dictionary.
+     - Returns: The number, or nil for any other type or a non-finite value.
+     */
     static func double(_ value: Any?) -> Double? {
         let number: Double?
         switch value {
@@ -20,6 +26,13 @@ enum IOValue {
         return number
     }
 
+    /**
+     Converts an IOKit value to a UInt64.
+
+     - Parameters:
+       - value: The raw value from an IOKit dictionary.
+     - Returns: The value, or nil when it is negative, non-finite, or 2^64 or larger.
+     */
     static func unsigned(_ value: Any?) -> UInt64? {
         guard let number = double(value), number >= 0, number < uint64Limit else { return nil }
         return UInt64(number)
@@ -28,9 +41,17 @@ enum IOValue {
 
 // MARK: - GPU
 
+/// Parses the IOAccelerator `PerformanceStatistics` dictionary, keeping the key-name knowledge out of the adapter.
 enum GPUStatisticsParser {
-    /// Reads "PerformanceStatistics" from an IOAccelerator. Returns nil if there is no usable utilization value.
-    /// VRAM is reported only when both used and free are present, because total = used + free.
+    /**
+     Builds a GPU reading from an IOAccelerator's `PerformanceStatistics` dictionary.
+
+     VRAM is reported only when both used and free are present, because total = used + free.
+
+     - Parameters:
+       - stats: The `PerformanceStatistics` dictionary.
+     - Returns: The reading, or nil when there is no usable utilization value.
+     */
     static func parse(_ stats: [String: Any]) -> GPUReading? {
         guard let utilization = utilization(stats) else { return nil }
 
@@ -57,9 +78,15 @@ enum GPUStatisticsParser {
 
 // MARK: - Disk
 
+/// Sums disk byte counters from IOBlockStorageDriver statistics, keeping the key-name knowledge out of the adapter.
 enum DiskStatisticsParser {
-    /// Sums "Bytes (Read)" and "Bytes (Write)" across the given IOBlockStorageDriver statistics dictionaries.
-    /// Returns nil when no driver reports either counter.
+    /**
+     Sums `Bytes (Read)` and `Bytes (Write)` across the given IOBlockStorageDriver statistics dictionaries.
+
+     - Parameters:
+       - drivers: One statistics dictionary per driver.
+     - Returns: The totals in bytes, or nil when no driver reports either counter.
+     */
     static func counters(from drivers: [[String: Any]]) -> DiskCounters? {
         var read: UInt64 = 0
         var write: UInt64 = 0
@@ -81,12 +108,21 @@ enum DiskStatisticsParser {
 
 // MARK: - Battery
 
+/// Parses IOPS power source and AppleSmartBattery registry data, keeping the key-name knowledge out of the adapter.
 enum BatteryParser {
-    /// - Parameters:
-    ///   - source: one entry from IOPSGetPowerSourceDescription.
-    ///   - registry: properties of the AppleSmartBattery service, used for health and cycle count.
-    ///     IOPS does not expose either value on every macOS release.
-    /// Returns nil when the source is not the internal battery (desktops have none).
+    /**
+     Builds a battery reading from one IOPS power source.
+
+     The percentage is clamped to 0...100 before conversion to Int, because a bogus capacity pair can produce a
+     ratio far outside that range. Minutes remaining are kept only when they fall between 0 and 10,000, because the
+     system reports 0 or a sentinel while it is still estimating.
+
+     - Parameters:
+       - source: One entry from `IOPSGetPowerSourceDescription`.
+       - registry: Properties of the AppleSmartBattery service, used for health and cycle count.
+         IOPS does not expose either value on every macOS release.
+     - Returns: The reading, or nil when the source is not the internal battery (desktops have none) or is not present.
+     */
     static func parse(source: [String: Any], registry: [String: Any]) -> BatteryReading? {
         guard source["Type"] as? String == "InternalBattery" else { return nil }
         if let present = source["Is Present"] as? Bool, !present { return nil }
@@ -95,7 +131,6 @@ enum BatteryParser {
         let maximum = IOValue.double(source["Max Capacity"])
         var percent: Int?
         if let current, let maximum, maximum > 0 {
-            // Clamp before converting to Int. A bogus capacity pair can produce a ratio far outside 0...100.
             let ratio = min(max(current / maximum * 100, 0), 100)
             percent = Int(ratio.rounded())
         }
@@ -103,7 +138,6 @@ enum BatteryParser {
         let charging = source["Is Charging"] as? Bool ?? false
         let onAC = (source["Power Source State"] as? String) == "AC Power"
 
-        // The system reports 0 or a sentinel while it is still estimating, so only plausible values are kept.
         let minutesKey = charging ? "Time to Full Charge" : "Time to Empty"
         var minutes: Int?
         if let value = IOValue.double(source[minutesKey]), value > 0, value < 10_000 {
@@ -120,9 +154,16 @@ enum BatteryParser {
         )
     }
 
-    /// Power flow in watts from the registry's voltage (mV) and current (mA).
-    /// Current is stored as an unsigned 64-bit value that wraps negative while discharging, so it is read as a signed
-    /// Int64.
+    /**
+     Computes battery power flow in watts from the registry's voltage and current.
+
+     Voltage is in millivolts and current in milliamps. Current is stored as an unsigned 64-bit value that wraps
+     negative while discharging, so it is read as a signed Int64.
+
+     - Parameters:
+       - registry: Properties of the AppleSmartBattery service.
+     - Returns: Watts, positive while charging and negative while discharging. Nil when voltage or current is unknown.
+     */
     static func powerWatts(registry: [String: Any]) -> Double? {
         guard let voltageMV = (registry["Voltage"] as? NSNumber)?.int64Value, voltageMV > 0 else { return nil }
         let currentNumber = (registry["InstantAmperage"] as? NSNumber) ?? (registry["Amperage"] as? NSNumber)
@@ -130,7 +171,15 @@ enum BatteryParser {
         return Double(voltageMV) * Double(currentMA) / 1_000_000
     }
 
-    /// Health = raw maximum capacity / design capacity. Prefers the raw value and falls back to nominal capacity.
+    /**
+     Computes battery health as a percentage of design capacity.
+
+     Health = raw maximum capacity / design capacity. Prefers the raw value and falls back to nominal capacity.
+
+     - Parameters:
+       - registry: Properties of the AppleSmartBattery service.
+     - Returns: Health in percent, capped at 100, or nil when design capacity or both raw values are unusable.
+     */
     static func health(registry: [String: Any]) -> Double? {
         guard let design = IOValue.double(registry["DesignCapacity"]), design > 0 else { return nil }
         let raw = IOValue.double(registry["AppleRawMaxCapacity"])

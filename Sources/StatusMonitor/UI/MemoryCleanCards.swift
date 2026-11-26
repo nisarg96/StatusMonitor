@@ -1,9 +1,15 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// The Standard and Extreme clean cards. `onClean` nil hides the Clean now buttons.
+/**
+ The Standard and Extreme clean cards.
+
+ `onClean` nil hides the Clean now buttons.
+ */
 struct MemoryCleanCards: View {
+    /// Disables the Clean now buttons while a clean runs.
     let isBusy: Bool
+    /// Runs the clean for a preset, or nil to hide the buttons.
     let onClean: ((CleanPreset) -> Void)?
 
     var body: some View {
@@ -26,6 +32,7 @@ struct MemoryCleanCards: View {
 
 /// The same cards, observing the clean view model so the buttons disable while a clean runs.
 struct MemoryCleanLiveCards: View {
+    /// The clean view model whose `isCleaning` state disables the buttons.
     @ObservedObject var model: MemoryCleanViewModel
 
     var body: some View {
@@ -35,9 +42,13 @@ struct MemoryCleanLiveCards: View {
 
 /// One clean: a title, a one-line description, and a Clean now button when cleaning is connected.
 struct MemoryCleanCard: View {
+    /// The card's heading, such as "Standard clean".
     let title: String
+    /// A one-line description of what the clean does.
     let description: String
+    /// Disables the Clean now button while a clean runs.
     let isBusy: Bool
+    /// The Clean now action, or nil to hide the button.
     let action: (() -> Void)?
 
     var body: some View {

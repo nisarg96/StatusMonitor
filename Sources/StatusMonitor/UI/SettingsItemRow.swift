@@ -1,10 +1,17 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// One row of the menu bar item list: drag handle, name with its style as the meta line, priority, and show toggle.
+/**
+ One row of the menu bar item list.
+
+ It shows a drag handle, the item's name with its style as the meta line, the priority, and the show toggle.
+ */
 struct SettingsItemRow: View {
+    /// The menu bar item this row represents.
     let item: MetricItemID
+    /// The item's configuration, which supplies the style shown in the meta line.
     let config: MenuBarItemConfig
+    /// The bindings that the priority and show controls write through.
     let bindings: SettingsItemBindings
 
     var body: some View {

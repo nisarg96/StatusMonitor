@@ -3,6 +3,7 @@ import SwiftUI
 
 /// The administrator approval for purge: its state as a pill, and the button that installs or removes it.
 struct MemoryCleanApprovalRow: View {
+    /// The purge approval state, which drives the pill and the button.
     @ObservedObject var purge: PurgePermissionViewModel
 
     var body: some View {

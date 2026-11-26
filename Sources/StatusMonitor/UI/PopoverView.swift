@@ -2,14 +2,21 @@ import AppKit
 import StatusMonitorCore
 import SwiftUI
 
-/// The menu bar popover, 380 pt wide: a header, one card per metric in the design's order, Memory Clean, Open at login,
-/// and a footer. A metric the Mac cannot provide has no card. A metric that is switched off keeps its header so it can
-/// be switched back on. The status bar item's own popover shows only that item's card.
+/**
+ The menu bar popover, 380 pt wide.
+
+ It has a header, one card per metric in the design's order, Memory Clean, Open at login, and a footer. A metric the
+ Mac cannot provide has no card. A metric that is switched off keeps its header so it can be switched back on. The
+ status bar item's own popover shows only that item's card.
+ */
 struct PopoverView: View {
+    /// The settings that decide which cards show and their values.
     @ObservedObject var settings: SettingsViewModel
+    /// The monitor that supplies the snapshot, the histories and the capabilities.
     @ObservedObject var monitor: MonitorViewModel
     /// When set, the popover shows only that status bar item's card. Nil shows every card.
     var only: MetricItemID?
+    /// Opens the Settings window.
     let openSettings: () -> Void
     /// Memory Clean. Nil leaves the clean buttons disabled until the app passes the view model in.
     var memoryClean: MemoryCleanViewModel?
@@ -44,7 +51,6 @@ struct PopoverView: View {
             }
             .padding(16)
             .frame(width: 380)
-            // Size to the content, so the popover grows and shrinks with its cards.
             .fixedSize(horizontal: false, vertical: true)
         }
         .frame(width: 380)
@@ -244,6 +250,13 @@ struct PopoverView: View {
 
     // MARK: - Rows
 
+    /**
+     Converts a readout row into a popover row.
+
+     - Parameter row: The readout row to convert.
+     - Parameter label: A label that replaces the row's own label, or nil to keep it.
+     - Returns: The popover row, with its accent colour.
+     */
     private func makeLine(_ row: ReadoutRow, label: String? = nil) -> PopoverMetricSection.Line {
         PopoverMetricSection.Line(
             id: row.id,
@@ -253,7 +266,12 @@ struct PopoverView: View {
         )
     }
 
-    /// Battery rows from the readout, without the power-flow line. The charge row gets a bar.
+    /**
+     Builds the battery rows from the readout, without the power-flow line. The charge row gets a bar.
+
+     - Parameter rows: The readout rows to filter.
+     - Returns: The battery rows, in order.
+     */
     private func batteryLines(_ rows: [ReadoutRow]) -> [PopoverMetricSection.Line] {
         let percent = monitor.snapshot.battery?.currentPercent
         return rows.filter { $0.collector == .battery && $0.id != "flow" }.map { row in

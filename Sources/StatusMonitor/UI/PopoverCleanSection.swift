@@ -1,16 +1,25 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// Memory Clean: Standard and Extreme buttons, the Auto Clean switch, the last clean's result, and what a clean does.
-/// The buttons are disabled while a clean runs, or when no clean action is wired up.
+/**
+ Memory Clean: the Standard and Extreme buttons, the Auto Clean switch, the last clean's result, and what a clean does.
+
+ The buttons are disabled while a clean runs, or when no clean action is wired up.
+ */
 struct PopoverCleanSection: View {
+    /// The Auto Clean switch state.
     let autoCleanOn: Bool
+    /// The Auto Clean threshold, in percent.
     let thresholdPercent: Int
+    /// False disables the clean buttons, such as before the clean use case is wired in.
     let canClean: Bool
+    /// True while a clean runs, which disables the buttons.
     let isCleaning: Bool
     /// The "Last clean freed X, N min ago" line. Nil hides it.
     let lastLine: String?
+    /// Runs the clean for a preset.
     let onClean: (CleanPreset) -> Void
+    /// Called with the new Auto Clean state when the switch changes.
     let onAutoClean: (Bool) -> Void
 
     var body: some View {

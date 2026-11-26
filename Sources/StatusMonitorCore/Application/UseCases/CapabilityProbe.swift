@@ -1,15 +1,28 @@
 import Foundation
 
-/// Runs once at launch to decide which optional collectors this Mac can provide.
-/// A collector counts as available only when its read succeeds right now.
-/// Run it off the main thread, because the thermal probe opens the SMC.
+/**
+ Decides which optional collectors this Mac can provide.
+
+ The probe runs once at launch. A collector counts as available only when its read succeeds at that moment. Run it off
+ the main thread, because the thermal probe opens the SMC.
+ */
 public struct CapabilityProbe {
     private let sources: MetricSources
 
+    /**
+     Creates a probe.
+
+     - Parameter sources: The ports to probe.
+     */
     public init(sources: MetricSources) {
         self.sources = sources
     }
 
+    /**
+     Probes each optional collector once.
+
+     - Returns: The collectors whose read succeeded. CPU, RAM and network are always available, so they are not listed.
+     */
     public func run() -> MetricCapabilities {
         var available = Set<CollectorKind>()
 

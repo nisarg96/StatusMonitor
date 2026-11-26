@@ -1,13 +1,21 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// CPU and memory: CPU percent with a bar, used RAM as "used of total" with a bar, and the hoverable CPU chart.
-/// The total is the Mac's real physical RAM, so it is never a guess.
+/**
+ CPU and memory: CPU percent with a bar, used RAM as "used of total" with a bar, and the hoverable CPU chart.
+
+ The total is the Mac's real physical RAM, so it is never a guess.
+ */
 struct PopoverCPUSection: View {
+    /// The latest reading, which supplies the CPU percent and the used RAM.
     let snapshot: SystemSnapshot
+    /// The settings that decide the readout rules.
     let settings: MetricSettings
+    /// The Mac's physical RAM in bytes. The RAM rows are hidden when this is zero.
     let physicalBytes: UInt64
+    /// The CPU history charted by the hover chart.
     let history: TimedSampleHistory
+    /// Called with the new visibility when the section's checkbox changes.
     let onToggle: (Bool) -> Void
 
     var body: some View {

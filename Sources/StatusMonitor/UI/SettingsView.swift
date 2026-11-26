@@ -3,9 +3,13 @@ import SwiftUI
 
 /// The Settings window: a sidebar of panes and the selected pane. The popover only shows values and opens this window.
 struct SettingsView: View {
+    /// The settings view model that the panes edit.
     @ObservedObject var settings: SettingsViewModel
+    /// The monitor, which supplies the live readings and the capabilities.
     @ObservedObject var monitor: MonitorViewModel
+    /// The purge approval state shown on the Memory Clean pane.
     @ObservedObject var purge: PurgePermissionViewModel
+    /// The selected pane and menu bar item.
     @ObservedObject var navigation: SettingsNavigation
     /// Nil until the app wires the clean use case in. Without it the Clean now controls are hidden.
     let memoryClean: MemoryCleanViewModel?

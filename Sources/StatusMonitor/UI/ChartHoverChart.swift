@@ -3,21 +3,30 @@ import SwiftUI
 
 /// One line of an interactive chart: its own timed samples, colour and dash style.
 struct ChartLine: Identifiable {
+    /// The line's identifier, which is also used as its dot's identity.
     let id: String
+    /// The timed samples of this line.
     let history: TimedSampleHistory
+    /// The line's colour.
     let color: Color
+    /// Draws the line dashed when true.
     var dashed = false
 }
 
-/// A sparkline that follows the pointer. Hovering shows a guide at the nearest sample, a dot on each line, and a
-/// tooltip with that sample's time and values. The nearest sample and the tooltip text come from `ChartHover`.
-/// Uses `onContinuousHover`, so it runs on macOS 13.
+/**
+ A sparkline that follows the pointer.
+
+ Hovering shows a guide at the nearest sample, a dot on each line, and a tooltip with that sample's time and values.
+ The nearest sample and the tooltip text come from `ChartHover`. It uses `onContinuousHover`, so it runs on macOS 13.
+ */
 struct ChartHoverChart: View {
+    /// The lines to draw. The tooltip's time comes from the first line.
     let lines: [ChartLine]
     /// Fixed scale for percentages. Nil fits the data.
     let yDomain: ClosedRange<Double>?
+    /// The height of the chart, in points.
     var height: CGFloat = 34
-    /// Value text for the sample at an index of the first line.
+    /// Returns the value text for the sample at an index of the first line.
     let tooltip: (Int) -> [String]
 
     @StateObject private var pointer = ChartPointerTracker()
@@ -68,11 +77,17 @@ struct ChartHoverChart: View {
 
 /// The guide, dots and tooltip for one hovered sample.
 private struct HoverOverlay: View {
+    /// The hovered sample's index and its tooltip text.
     let readout: ChartHover.Readout
+    /// The lines whose dots are drawn at the hovered sample.
     let lines: [ChartLine]
+    /// The y scale that the dots are placed with.
     let domain: ClosedRange<Double>
+    /// The chart's width, in points.
     let width: Double
+    /// The chart's height, in points.
     let height: Double
+    /// The pointer's x position, in points, used when the guide has no sample time to snap to.
     let pointerX: Double
 
     var body: some View {
@@ -120,15 +135,21 @@ private struct HoverDot {
     let yPos: Double
 }
 
-/// The tooltip, placed on the side of the guide with the most room, so it stays inside the chart.
+/**
+ The tooltip, placed on the side of the guide with the most room, so it stays inside the chart.
+
+ It sits 6 points clear of the guide.
+ */
 private struct ChartTooltipBox: View {
+    /// The hovered sample's time and value text.
     let readout: ChartHover.Readout
+    /// The guide's x position, in points.
     let guideX: Double
+    /// The chart's width, in points.
     let width: Double
 
     var body: some View {
         let onLeft = guideX < width / 2
-        // Six points clear of the guide, on whichever side has room.
         let inset = onLeft ? guideX + 6 : width - guideX + 6
         box
             .padding(.leading, onLeft ? inset : 0)

@@ -3,8 +3,11 @@ import SwiftUI
 
 /// The Menu bar items page: a reorderable list on the left and the selected item's detail on the right.
 struct SettingsMenuBarItemsPane: View {
+    /// The settings view model that the list and detail edit.
     @ObservedObject var settings: SettingsViewModel
+    /// The monitor, which supplies the capabilities and the live readings.
     @ObservedObject var monitor: MonitorViewModel
+    /// The selected pane and menu bar item.
     @ObservedObject var navigation: SettingsNavigation
 
     var body: some View {
