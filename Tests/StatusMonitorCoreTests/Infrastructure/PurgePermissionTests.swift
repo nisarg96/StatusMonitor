@@ -27,7 +27,11 @@ final class FakePurgePermission: PurgePermissionService {
 struct SudoersInstallerCheckTests {
     @Test("a user name with spaces or assignments is refused before anything is written")
     func unsafeUserRefused() {
-        let installer = SudoersInstaller()
+        // Injected runner: this test must never reach the real administrator prompt.
+        let installer = SudoersInstaller(
+            executor: SudoersPurgeExecutor(runner: { _, _ in 0 }),
+            runPrivileged: { _ in Issue.record("the privileged step must not run for an unsafe name") }
+        )
         #expect(throws: PurgePermissionError.unsafeUserName) {
             try installer.install(forUser: "nisarg ALL=(ALL) ALL")
         }
@@ -68,38 +72,38 @@ struct PurgePermissionViewModelTests {
     @Test("refresh reports installed or not installed, without prompting")
     func refreshReadsState() {
         let service = FakePurgePermission()
-        let vm = makeViewModel(service)
-        vm.refresh()
-        #expect(vm.state == .notInstalled)
+        let viewModel = makeViewModel(service)
+        viewModel.refresh()
+        #expect(viewModel.state == .notInstalled)
         service.installed = true
-        vm.refresh()
-        #expect(vm.state == .installed)
+        viewModel.refresh()
+        #expect(viewModel.state == .installed)
     }
 
     @Test("a successful install ends installed and uses the current user name")
     func installSucceeds() {
         let service = FakePurgePermission()
-        let vm = makeViewModel(service)
-        vm.install()
+        let viewModel = makeViewModel(service)
+        viewModel.install()
         #expect(service.installCalls == ["nisarg"])
-        #expect(vm.state == .installed)
+        #expect(viewModel.state == .installed)
     }
 
     @Test("a cancelled prompt leaves the row not installed and says why")
     func cancelledPrompt() {
         let service = FakePurgePermission()
         service.installError = PurgePermissionError.cancelled
-        let vm = makeViewModel(service)
-        vm.install()
-        #expect(vm.state == .failed(PurgePermissionError.cancelled.localizedDescription))
+        let viewModel = makeViewModel(service)
+        viewModel.install()
+        #expect(viewModel.state == .failed(PurgePermissionError.cancelled.localizedDescription))
     }
 
     @Test("uninstall removes the rule")
     func uninstallRemoves() {
         let service = FakePurgePermission()
         service.installed = true
-        let vm = makeViewModel(service)
-        vm.uninstall()
-        #expect(vm.state == .notInstalled)
+        let viewModel = makeViewModel(service)
+        viewModel.uninstall()
+        #expect(viewModel.state == .notInstalled)
     }
 }

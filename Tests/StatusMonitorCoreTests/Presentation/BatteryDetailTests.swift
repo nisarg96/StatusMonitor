@@ -86,13 +86,13 @@ struct BatteryDetailTests {
     @Test("the settings view model toggles one detail and persists it")
     func settingsViewModelPersists() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.setBatteryDetail(.cycles, shown: false)
-        #expect(vm.settings.isBatteryDetailShown(.cycles) == false)
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.setBatteryDetail(.cycles, shown: false)
+        #expect(viewModel.settings.isBatteryDetailShown(.cycles) == false)
         #expect(repo.stored.hiddenBatteryDetails == [.cycles])
 
-        vm.setBatteryDetail(.cycles, shown: true)
-        #expect(vm.settings.isBatteryDetailShown(.cycles))
+        viewModel.setBatteryDetail(.cycles, shown: true)
+        #expect(viewModel.settings.isBatteryDetailShown(.cycles))
         #expect(repo.stored.hiddenBatteryDetails.isEmpty)
     }
 

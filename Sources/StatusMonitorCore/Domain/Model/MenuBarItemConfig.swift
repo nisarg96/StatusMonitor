@@ -25,17 +25,10 @@ public enum MenuBarClickAction: String, CaseIterable, Codable, Sendable {
     case nothing
 }
 
-/// How often an item's value refreshes while it is shown. The design offers 1, 2 and 5 seconds.
-public enum MenuBarRefresh: Int, CaseIterable, Codable, Sendable {
-    case oneSecond = 1
-    case twoSeconds = 2
-    case fiveSeconds = 5
-}
-
 /// Per-item appearance and behaviour. Every field has a default, so a missing config never breaks the bar.
+/// Refresh is not per item: every item uses the global cadence (2 s open, 5 s closed).
 public struct MenuBarItemConfig: Equatable, Codable, Sendable {
     public var style: MenuBarItemStyle
-    public var refresh: MenuBarRefresh
     /// Hide the item while its value is below `idleBelow`, for example network under 100 KB/s.
     public var hideWhenIdle: Bool
     /// Bytes per second for network and disk, percent for the other metrics.
@@ -46,14 +39,12 @@ public struct MenuBarItemConfig: Equatable, Codable, Sendable {
 
     public init(
         style: MenuBarItemStyle = .value,
-        refresh: MenuBarRefresh = .twoSeconds,
         hideWhenIdle: Bool = false,
         idleBelow: Double = 100_000,
         alertAbove: Double? = nil,
         onClick: MenuBarClickAction = .showPopover
     ) {
         self.style = style
-        self.refresh = refresh
         self.hideWhenIdle = hideWhenIdle
         self.idleBelow = idleBelow
         self.alertAbove = alertAbove

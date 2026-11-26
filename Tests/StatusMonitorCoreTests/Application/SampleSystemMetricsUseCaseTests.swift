@@ -28,7 +28,7 @@ struct SampleSystemMetricsUseCaseTests {
         let rig = Rig()
         rig.fakes.cpu.queued = [
             CPUTicks(user: 0, system: 0, idle: 0, nice: 0),
-            CPUTicks(user: 25, system: 0, idle: 75, nice: 0),
+            CPUTicks(user: 25, system: 0, idle: 75, nice: 0)
         ]
         rig.fakes.memory.usedBytes = 3_221_225_472
         rig.fakes.interfaces.interfaces = [.active("en0", rx: 0, tx: 0)]

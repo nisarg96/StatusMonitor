@@ -3,12 +3,35 @@ import Foundation
 import StatusMonitorCore
 
 // Diagnostic mode: print samples to stdout and exit without starting the GUI.
-if let index = CommandLine.arguments.firstIndex(of: "--dump-samples") {
-    let count = CommandLine.arguments.indices.contains(index + 1)
-        ? Int(CommandLine.arguments[index + 1]) ?? 10
-        : 10
-    SampleDumpCommand.run(count: count, settings: UserDefaultsSettingsRepository().load())
+switch DumpSamplesArguments.parse(CommandLine.arguments) {
+case .success(nil):
+    break
+case .success(let count?):
+    let dependencies = CompositionRoot.sampleDumpDependencies()
+    SampleDumpCommand.run(count: count, sources: dependencies.sources, settings: dependencies.settings)
     exit(0)
+case .failure(let error):
+    FileHandle.standardError.write(Data((error.message + "\n").utf8))
+    exit(2)
+}
+
+// Snapshot mode: render the real views to PNG files in a folder, then exit. Nothing is started or cleaned.
+switch SnapshotArguments.parse(CommandLine.arguments) {
+case .success(nil):
+    break
+case .success(let folder?):
+    do {
+        try MainActor.assumeIsolated {
+            try SnapshotCommand.run(folder: folder, root: SnapshotCommand.makeRoot())
+        }
+        exit(0)
+    } catch {
+        FileHandle.standardError.write(Data(("--snapshot failed: \(error.localizedDescription)\n").utf8))
+        exit(1)
+    }
+case .failure(let error):
+    FileHandle.standardError.write(Data((error.message + "\n").utf8))
+    exit(2)
 }
 
 MainActor.assumeIsolated {

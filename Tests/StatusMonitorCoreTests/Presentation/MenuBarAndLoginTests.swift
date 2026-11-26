@@ -68,10 +68,10 @@ struct MenuBarItemDefaultsTests {
     @Test("the settings view model toggles a menu bar item and persists it")
     func toggleAndPersist() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.setMenuBarItem(.gpu, shown: false)
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.setMenuBarItem(.gpu, shown: false)
         #expect(repo.stored.hiddenMenuBarItems.contains(.gpu))
-        vm.setMenuBarItem(.gpu, shown: true)
+        viewModel.setMenuBarItem(.gpu, shown: true)
         #expect(!repo.stored.hiddenMenuBarItems.contains(.gpu))
     }
 }
@@ -82,34 +82,34 @@ struct OpenAtLoginTests {
     func readsSystemState() {
         let login = FakeLoginItem()
         login.enabled = true
-        let vm = SettingsViewModel(repository: InMemorySettingsRepository(), loginItem: login)
-        #expect(vm.opensAtLogin)
+        let viewModel = SettingsViewModel(repository: InMemorySettingsRepository(), loginItem: login)
+        #expect(viewModel.opensAtLogin)
     }
 
     @Test("turning it on registers the login item and reads the result back")
     func enable() {
         let login = FakeLoginItem()
-        let vm = SettingsViewModel(repository: InMemorySettingsRepository(), loginItem: login)
-        vm.setOpensAtLogin(true)
+        let viewModel = SettingsViewModel(repository: InMemorySettingsRepository(), loginItem: login)
+        viewModel.setOpensAtLogin(true)
         #expect(login.enabled)
-        #expect(vm.opensAtLogin)
-        #expect(vm.loginItemError == nil)
+        #expect(viewModel.opensAtLogin)
+        #expect(viewModel.loginItemError == nil)
     }
 
     @Test("a failure is shown, and the toggle shows the system's state, not the request")
     func failureShown() {
         let login = FakeLoginItem()
         login.failure = RegistrationError()
-        let vm = SettingsViewModel(repository: InMemorySettingsRepository(), loginItem: login)
-        vm.setOpensAtLogin(true)
-        #expect(vm.opensAtLogin == false)
-        #expect(vm.loginItemError?.contains("Operation not permitted") == true)
+        let viewModel = SettingsViewModel(repository: InMemorySettingsRepository(), loginItem: login)
+        viewModel.setOpensAtLogin(true)
+        #expect(viewModel.opensAtLogin == false)
+        #expect(viewModel.loginItemError?.contains("Operation not permitted") == true)
     }
 
     @Test("without a login item service the toggle stays off and does nothing")
     func noService() {
-        let vm = SettingsViewModel(repository: InMemorySettingsRepository())
-        vm.setOpensAtLogin(true)
-        #expect(vm.opensAtLogin == false)
+        let viewModel = SettingsViewModel(repository: InMemorySettingsRepository())
+        viewModel.setOpensAtLogin(true)
+        #expect(viewModel.opensAtLogin == false)
     }
 }

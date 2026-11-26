@@ -9,11 +9,11 @@ public final class RunLoopRefreshScheduler: RefreshScheduling {
 
     public func schedule(every interval: TimeInterval, action: @escaping () -> Void) {
         timer?.invalidate()
-        let t = Timer(timeInterval: interval, repeats: true) { _ in action() }
+        let newTimer = Timer(timeInterval: interval, repeats: true) { _ in action() }
         // A little tolerance lets the system coalesce wakeups, which saves battery.
-        t.tolerance = interval * 0.1
-        RunLoop.main.add(t, forMode: .common)
-        timer = t
+        newTimer.tolerance = interval * 0.1
+        RunLoop.main.add(newTimer, forMode: .common)
+        timer = newTimer
     }
 
     public func cancel() {

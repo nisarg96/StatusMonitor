@@ -5,12 +5,15 @@ import Foundation
 
 /// Reads an IOKit numeric value defensively. Anything that is not a non-negative finite number is nil.
 enum IOValue {
+    /// 2^64 as a Double. Any value at or above it does not fit in a UInt64, and converting it would trap.
+    private static let uint64Limit: Double = 18_446_744_073_709_551_616
+
     static func double(_ value: Any?) -> Double? {
         let number: Double?
         switch value {
-        case let n as NSNumber: number = n.doubleValue
-        case let d as Double: number = d
-        case let i as Int: number = Double(i)
+        case let nsNumber as NSNumber: number = nsNumber.doubleValue
+        case let doubleValue as Double: number = doubleValue
+        case let intValue as Int: number = Double(intValue)
         default: number = nil
         }
         guard let number, number.isFinite else { return nil }
@@ -18,7 +21,7 @@ enum IOValue {
     }
 
     static func unsigned(_ value: Any?) -> UInt64? {
-        guard let number = double(value), number >= 0 else { return nil }
+        guard let number = double(value), number >= 0, number < uint64Limit else { return nil }
         return UInt64(number)
     }
 }
@@ -92,7 +95,9 @@ enum BatteryParser {
         let maximum = IOValue.double(source["Max Capacity"])
         var percent: Int?
         if let current, let maximum, maximum > 0 {
-            percent = Int((current / maximum * 100).rounded())
+            // Clamp before converting to Int. A bogus capacity pair can produce a ratio far outside 0...100.
+            let ratio = min(max(current / maximum * 100, 0), 100)
+            percent = Int(ratio.rounded())
         }
 
         let charging = source["Is Charging"] as? Bool ?? false
@@ -108,7 +113,7 @@ enum BatteryParser {
         return BatteryReading(
             currentPercent: percent,
             healthPercent: health(registry: registry),
-            cycleCount: IOValue.unsigned(registry["CycleCount"]).map { Int($0) },
+            cycleCount: IOValue.unsigned(registry["CycleCount"]).flatMap { $0 <= UInt64(Int.max) ? Int($0) : nil },
             isCharging: charging,
             isOnACPower: onAC,
             minutesRemaining: minutes
@@ -116,7 +121,8 @@ enum BatteryParser {
     }
 
     /// Power flow in watts from the registry's voltage (mV) and current (mA).
-    /// Current is stored as an unsigned 64-bit value that wraps negative while discharging, so it is read as a signed Int64.
+    /// Current is stored as an unsigned 64-bit value that wraps negative while discharging, so it is read as a signed
+    /// Int64.
     static func powerWatts(registry: [String: Any]) -> Double? {
         guard let voltageMV = (registry["Voltage"] as? NSNumber)?.int64Value, voltageMV > 0 else { return nil }
         let currentNumber = (registry["InstantAmperage"] as? NSNumber) ?? (registry["Amperage"] as? NSNumber)

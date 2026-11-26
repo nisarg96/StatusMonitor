@@ -9,6 +9,10 @@ public struct DiskRateCalculator: Sendable {
 
     /// - Parameter current: nil when the disk counters could not be read this tick. The baseline is dropped,
     ///   so the first reading after the gap seeds a new one instead of averaging across the gap.
+    /// - Returns: nil when a counter went backwards. The counters are 64-bit and do not wrap in practice, so a
+    ///   decrease means they were reset. This intentionally departs from the wrapping-subtraction rule used for
+    ///   the 32-bit counters: a wrapped difference would report a near-2^64 byte rate. The reset reading becomes
+    ///   the new baseline.
     public mutating func rates(for current: DiskCounters?, elapsedSeconds: Double) -> DiskRates? {
         guard let current else {
             baseline = nil
@@ -16,13 +20,13 @@ public struct DiskRateCalculator: Sendable {
         }
         defer { baseline = current }
         guard let previous = baseline, elapsedSeconds > 0 else { return nil }
+        guard current.readBytes >= previous.readBytes, current.writeBytes >= previous.writeBytes else {
+            return nil
+        }
 
-        // Wrapping subtraction protects against counter resets.
-        let readDelta = current.readBytes &- previous.readBytes
-        let writeDelta = current.writeBytes &- previous.writeBytes
         return DiskRates(
-            readBps: Double(readDelta) / elapsedSeconds,
-            writeBps: Double(writeDelta) / elapsedSeconds
+            readBps: Double(current.readBytes - previous.readBytes) / elapsedSeconds,
+            writeBps: Double(current.writeBytes - previous.writeBytes) / elapsedSeconds
         )
     }
 }

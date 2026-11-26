@@ -28,5 +28,7 @@
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Nisarg Shah. Licensed under the MIT License.</string>
 </dict>
 </plist>

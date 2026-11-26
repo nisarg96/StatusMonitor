@@ -6,15 +6,15 @@ struct SettingsViewModelTests {
     @Test("loads initial settings from the repository")
     func loadsInitial() {
         let repo = InMemorySettingsRepository(MetricSettings(cpuMode: .memoryGB))
-        let vm = SettingsViewModel(repository: repo)
-        #expect(vm.settings.cpuMode == .memoryGB)
+        let viewModel = SettingsViewModel(repository: repo)
+        #expect(viewModel.settings.cpuMode == .memoryGB)
     }
 
     @Test("each change is persisted immediately")
     func persistsChanges() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.setShowNetwork(false)
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.setShowNetwork(false)
         #expect(repo.stored.showNetwork == false)
         #expect(repo.saveCount == 1)
     }
@@ -22,26 +22,26 @@ struct SettingsViewModelTests {
     @Test("setting an unchanged value does not write")
     func noOpWritesNothing() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.setShowCPU(true)
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.setShowCPU(true)
         #expect(repo.saveCount == 0)
     }
 
     @Test("interface text is parsed into the allow-list")
     func interfaceTextParsed() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.interfaceText = "en0, utun3"
-        #expect(vm.settings.allowedInterfaces == ["en0", "utun3"])
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.interfaceText = "en0, utun3"
+        #expect(viewModel.settings.allowedInterfaces == ["en0", "utun3"])
         #expect(repo.stored.allowedInterfaces == ["en0", "utun3"])
     }
 
     @Test("collector toggles are recorded as explicit overrides and persisted")
     func collectorOverride() {
         let repo = InMemorySettingsRepository()
-        let vm = SettingsViewModel(repository: repo)
-        vm.setCollectorEnabled(.gpu, false)
-        #expect(vm.settings.collectorOverrides[.gpu] == false)
+        let viewModel = SettingsViewModel(repository: repo)
+        viewModel.setCollectorEnabled(.gpu, false)
+        #expect(viewModel.settings.collectorOverrides[.gpu] == false)
         #expect(repo.stored.collectorOverrides[.gpu] == false)
     }
 }
@@ -93,7 +93,7 @@ struct MonitorViewModelTests {
         let rig = Rig()
         rig.fakes.cpu.queued = [
             CPUTicks(user: 0, system: 0, idle: 0, nice: 0),
-            CPUTicks(user: 50, system: 0, idle: 50, nice: 0),
+            CPUTicks(user: 50, system: 0, idle: 50, nice: 0)
         ]
         rig.monitor.refresh()
         rig.fakes.clock.advance(seconds: 2)

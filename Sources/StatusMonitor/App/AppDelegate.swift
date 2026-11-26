@@ -6,7 +6,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBar: StatusBarController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        statusBar = StatusBarController(settings: root.settings, monitor: root.monitor, purge: root.purge)
+        statusBar = StatusBarController(
+            settings: root.settings, monitor: root.monitor, purge: root.purge, memoryClean: root.memoryClean
+        )
         root.monitor.start()
     }
 

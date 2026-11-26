@@ -10,16 +10,16 @@ public struct MachCPUTickSource: CPUTickSource {
             MemoryLayout<host_cpu_load_info_data_t>.size / MemoryLayout<integer_t>.size
         )
         let capacity = Int(count)
-        let kr = withUnsafeMutablePointer(to: &info) { ptr in
+        let kernelResult = withUnsafeMutablePointer(to: &info) { ptr in
             ptr.withMemoryRebound(to: integer_t.self, capacity: capacity) {
                 host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
             }
         }
-        guard kr == KERN_SUCCESS else { return nil }
+        guard kernelResult == KERN_SUCCESS else { return nil }
 
         // Tuple order: CPU_STATE_USER, CPU_STATE_SYSTEM, CPU_STATE_IDLE, CPU_STATE_NICE.
-        let t = info.cpu_ticks
-        return CPUTicks(user: t.0, system: t.1, idle: t.2, nice: t.3)
+        let ticks = info.cpu_ticks
+        return CPUTicks(user: ticks.0, system: ticks.1, idle: ticks.2, nice: ticks.3)
     }
 }
 
@@ -35,12 +35,12 @@ public struct MachMemoryUsageSource: MemoryUsageSource {
             MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size
         )
         let capacity = Int(count)
-        let kr = withUnsafeMutablePointer(to: &stats) { ptr in
+        let kernelResult = withUnsafeMutablePointer(to: &stats) { ptr in
             ptr.withMemoryRebound(to: integer_t.self, capacity: capacity) {
                 host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
             }
         }
-        guard kr == KERN_SUCCESS else { return nil }
+        guard kernelResult == KERN_SUCCESS else { return nil }
 
         let internalPages = UInt64(stats.internal_page_count)
         let purgeable = UInt64(stats.purgeable_count)

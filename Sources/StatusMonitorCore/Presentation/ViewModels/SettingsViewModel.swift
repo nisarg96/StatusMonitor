@@ -58,6 +58,39 @@ public final class SettingsViewModel: ObservableObject {
         update { $0.menuBarItemConfigs[item] = config }
     }
 
+    /// Bytes per second in one MB/s of the alert field. Project units use 1024 steps.
+    public static let bytesPerMegabyte: Double = 1024 * 1024
+
+    /// Default alert threshold for an item, in the stored unit: bytes/s for network and disk,
+    /// percent or degrees otherwise.
+    public static func defaultAlert(for item: MetricItemID) -> Double {
+        switch item {
+        case .network: return 50 * bytesPerMegabyte
+        case .disk: return 500 * bytesPerMegabyte
+        case .thermal: return 90
+        default: return 80
+        }
+    }
+
+    /// The alert threshold in the unit the field shows: MB/s for network and disk, the raw value for the rest.
+    public func alertDisplayValue(_ item: MetricItemID) -> Double {
+        let stored = settings.itemConfig(for: item).alertAbove ?? Self.defaultAlert(for: item)
+        return Self.usesRateUnit(item) ? stored / Self.bytesPerMegabyte : stored
+    }
+
+    /// Stores an alert threshold typed in the field's unit. Entering N for network or disk stores
+    /// N * 1024 * 1024 bytes/s.
+    public func setAlertDisplayValue(_ item: MetricItemID, _ value: Double) {
+        let clamped = max(0, value)
+        var config = settings.itemConfig(for: item)
+        config.alertAbove = Self.usesRateUnit(item) ? clamped * Self.bytesPerMegabyte : clamped
+        setItemConfig(item, config)
+    }
+
+    private static func usesRateUnit(_ item: MetricItemID) -> Bool {
+        item == .network || item == .disk
+    }
+
     /// Sets light, dark or system appearance for the popover and Settings window.
     public func setAppearance(_ mode: AppearanceMode) {
         update { $0.appearance = mode }
@@ -68,7 +101,8 @@ public final class SettingsViewModel: ObservableObject {
         update { $0.menuBarOrder = order }
     }
 
-    /// Sets how important a status bar item is. Priority decides the order and, later, what hides first when the bar is full.
+    /// Sets how important a status bar item is. Priority decides the order and, later, what hides first when the bar
+    /// is full.
     public func setMenuBarPriority(_ item: MetricItemID, _ priority: MenuBarPriority) {
         update { $0.menuBarPriorities[item] = priority }
     }
@@ -86,7 +120,11 @@ public final class SettingsViewModel: ObservableObject {
                     settings.collectorOverrides[kind] = true
                 }
                 if let legacy = MenuBarItem(rawValue: item.rawValue) {
-                    if shown { settings.hiddenMenuBarItems.remove(legacy) } else { settings.hiddenMenuBarItems.insert(legacy) }
+                    if shown {
+                        settings.hiddenMenuBarItems.remove(legacy)
+                    } else {
+                        settings.hiddenMenuBarItems.insert(legacy)
+                    }
                 }
             }
         }

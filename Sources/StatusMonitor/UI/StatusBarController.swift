@@ -22,14 +22,23 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let settings: SettingsViewModel
     private let monitor: MonitorViewModel
     private let purge: PurgePermissionViewModel
+    private let memoryClean: MemoryCleanViewModel
     private let settingsWindow: SettingsWindowController
     private var cancellables = Set<AnyCancellable>()
 
-    init(settings: SettingsViewModel, monitor: MonitorViewModel, purge: PurgePermissionViewModel) {
+    init(
+        settings: SettingsViewModel,
+        monitor: MonitorViewModel,
+        purge: PurgePermissionViewModel,
+        memoryClean: MemoryCleanViewModel
+    ) {
         self.settings = settings
         self.monitor = monitor
         self.purge = purge
-        self.settingsWindow = SettingsWindowController(settings: settings, monitor: monitor, purge: purge)
+        self.memoryClean = memoryClean
+        self.settingsWindow = SettingsWindowController(
+            settings: settings, monitor: monitor, purge: purge, memoryClean: memoryClean
+        )
         super.init()
 
         Publishers.CombineLatest(monitor.$visibleItems, monitor.$itemGlyphs)
@@ -86,10 +95,13 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         guard let button = statusItem.button else { return }
         button.title = ""
         button.attributedTitle = NSAttributedString(string: "")
-        if let glyph {
-            button.image = MenuBarImageRenderer.image(for: glyph)
-        } else {
-            button.image = MenuBarImageRenderer.iconOnly(symbol: Self.symbol(for: item))
+        // Colours resolve against the bar's own appearance, so the light and dark alert pairs match the menu bar.
+        button.effectiveAppearance.performAsCurrentDrawingAppearance {
+            if let glyph {
+                button.image = MenuBarImageRenderer.image(for: glyph)
+            } else {
+                button.image = MenuBarImageRenderer.iconOnly(symbol: Self.symbol(for: item))
+            }
         }
         button.imagePosition = .imageOnly
     }
@@ -116,9 +128,11 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         popover.delegate = self
         let only = MetricItemID(rawValue: key)
         let hosting = NSHostingController(
-            rootView: PopoverView(settings: settings, monitor: monitor, only: only, openSettings: { [weak self] in
-                self?.settingsWindow.show()
-            })
+            rootView: PopoverView(
+                settings: settings, monitor: monitor, only: only,
+                openSettings: { [weak self] in self?.settingsWindow.show() },
+                memoryClean: memoryClean
+            )
         )
         // The popover takes its size from the SwiftUI content, so it grows and shrinks with the cards.
         hosting.sizingOptions = [.preferredContentSize]
@@ -130,7 +144,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     /// Opens the popover for the item that was clicked, anchored to that item. Clicking it again closes it.
     @objc private func togglePopover(_ sender: AnyObject?) {
         guard let button = sender as? NSStatusBarButton else { return }
-        // A metric item's "On click" setting decides what happens. The anchor has no item, so it always opens the popover.
+        // A metric item's "On click" setting decides what happens. The anchor has no item, so it always opens the
+        // popover.
         if let key = button.identifier?.rawValue, let item = MetricItemID(rawValue: key) {
             switch settings.settings.itemConfig(for: item).onClick {
             case .showPopover:

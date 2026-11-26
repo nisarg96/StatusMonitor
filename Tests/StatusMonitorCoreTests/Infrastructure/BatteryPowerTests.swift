@@ -14,7 +14,8 @@ struct BatteryPowerTests {
 
     @Test("charging: a positive current gives positive watts")
     func charging() {
-        let watts = BatteryParser.powerWatts(registry: ["Voltage": NSNumber(value: 12_000), "Amperage": NSNumber(value: 2_000)])
+        let watts = BatteryParser.powerWatts(
+            registry: ["Voltage": NSNumber(value: 12_000), "Amperage": NSNumber(value: 2_000)])
         #expect(abs((watts ?? 0) - 24) < 0.001)
     }
 

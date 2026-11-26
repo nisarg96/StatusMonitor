@@ -1,19 +1,32 @@
 import Foundation
 
-/// Installs the purge sudoers rule.
+/// Installs and removes the purge sudoers rule.
 ///
-/// Install steps:
-/// 1. Refuse unsafe user names, so no input can change the rule's meaning.
-/// 2. Write the rule to a temporary file and check it with `visudo -cf`. A broken sudoers file can lock out sudo, so nothing is installed without a pass.
-/// 3. Copy it into place as root with `install -m 0440 -o root -g wheel`, through one administrator prompt.
+/// Install is one privileged command, run behind one administrator prompt. Root does everything itself:
+/// 1. `mktemp` creates a root-owned temp file (mode 0600, created exclusively, so no symlink can be followed).
+/// 2. The rule is written into that file.
+/// 3. `visudo -cf` checks that exact file. A broken sudoers file can lock out sudo, so nothing is installed
+///    without a pass.
+/// 4. `install -m 0440 -o root -g wheel` copies that same file into place, and the temp file is removed.
 ///
-/// Uninstall removes the file the same way, also behind one administrator prompt.
+/// No user-writable path is ever read by root, so the checked content is the content that gets installed.
 public final class SudoersInstaller: PurgePermissionService {
     static let visudoPath = "/usr/sbin/visudo"
+    /// Template for the root-owned temp file. The directory is root's home, which only root can write.
+    static let rootTempTemplate = "/private/var/root/statusmonitor-sudoers.XXXXXX"
+
     private let executor: SudoersPurgeExecutor
+    private let runPrivileged: (String) throws -> Void
 
     public init(executor: SudoersPurgeExecutor = SudoersPurgeExecutor()) {
         self.executor = executor
+        self.runPrivileged = { try SudoersInstaller.runAsAdministrator($0) }
+    }
+
+    /// Tests inject a runner so no administrator prompt is shown.
+    init(executor: SudoersPurgeExecutor, runPrivileged: @escaping (String) throws -> Void) {
+        self.executor = executor
+        self.runPrivileged = runPrivileged
     }
 
     public func isInstalled() -> Bool {
@@ -22,27 +35,45 @@ public final class SudoersInstaller: PurgePermissionService {
     }
 
     public func install(forUser user: String) throws {
-        guard SudoersRule.isSafeUserName(user) else { throw PurgePermissionError.unsafeUserName }
-
-        let content = SudoersRule.line(forUser: user) + "\n"
-        let staged = try Self.stage(content)
-        defer { try? FileManager.default.removeItem(at: staged) }
-
-        try Self.validate(staged)
-        try Self.runAsAdministrator(
-            "/usr/bin/install -m 0440 -o root -g wheel '\(staged.path)' '\(SudoersRule.installPath)'"
-        )
+        guard Self.isStrictUserName(user) else { throw PurgePermissionError.unsafeUserName }
+        try runPrivileged(Self.installScript(line: SudoersRule.line(forUser: user)))
         executor.invalidateAvailability()
     }
 
     public func uninstall() throws {
-        try Self.runAsAdministrator("/bin/rm -f '\(SudoersRule.installPath)'")
+        try runPrivileged("/bin/rm -f \(Self.shellQuoted(SudoersRule.installPath))")
         executor.invalidateAvailability()
     }
 
     // MARK: - Steps
 
-    /// Writes the content to a private temporary file, readable only by this user.
+    /// The one privileged command for install. Every step works on the same root-owned file, `$tmp`.
+    static func installScript(line: String) -> String {
+        "tmp=$(/usr/bin/mktemp \(rootTempTemplate)) || exit 1; "
+            + "/usr/bin/printf '%s\\n' \(shellQuoted(line)) > \"$tmp\" && "
+            + "\(visudoPath) -cf \"$tmp\" && "
+            + "/usr/bin/install -m 0440 -o root -g wheel \"$tmp\" \(shellQuoted(SudoersRule.installPath)); "
+            + "status=$?; /bin/rm -f \"$tmp\"; exit $status"
+    }
+
+    /// ASCII letters, digits, `_`, `-` and `.`. Anything else could change the shell command or the rule.
+    static func isStrictUserName(_ user: String) -> Bool {
+        let allowedPunctuation: Set<Unicode.Scalar> = ["_", "-", "."]
+        return !user.isEmpty && user.unicodeScalars.allSatisfy { scalar in
+            switch scalar.value {
+            case 0x30...0x39, 0x41...0x5A, 0x61...0x7A: return true
+            default: return allowedPunctuation.contains(scalar)
+            }
+        }
+    }
+
+    /// Wraps a value in single quotes for the shell, escaping any single quote inside it.
+    static func shellQuoted(_ value: String) -> String {
+        "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+    }
+
+    /// Writes the content to a private temporary file in the user's temp directory. Not used by install, which
+    /// never lets root read a user-writable file. Kept for the check helpers below.
     static func stage(_ content: String) throws -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("statusmonitor-purge-\(UUID().uuidString).sudoers")
@@ -51,7 +82,7 @@ public final class SudoersInstaller: PurgePermissionService {
         return url
     }
 
-    /// Runs `visudo -cf` on the staged file. Exit 0 means the syntax is valid.
+    /// Runs `visudo -cf` on a file. Exit 0 means the syntax is valid.
     static func validate(_ file: URL) throws {
         let result = runProcess(visudoPath, arguments: ["-cf", file.path])
         guard result.status == 0 else {
@@ -87,6 +118,6 @@ public final class SudoersInstaller: PurgePermissionService {
         // Read before waiting, so a full pipe cannot block the child.
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         process.waitUntilExit()
-        return (process.terminationStatus, String(decoding: data, as: UTF8.self))
+        return (process.terminationStatus, String(bytes: data, encoding: .utf8) ?? "")
     }
 }
