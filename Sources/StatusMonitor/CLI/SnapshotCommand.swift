@@ -145,7 +145,8 @@ enum SnapshotCommand {
      */
     private static func popoverWindow(_ root: CompositionRoot, appearance: NSAppearance.Name) -> NSWindow {
         let view = PopoverView(
-            settings: root.settings, monitor: root.monitor, only: nil, openSettings: {}, memoryClean: root.memoryClean
+            settings: root.settings, monitor: root.monitor, only: nil, openSettings: {},
+            memoryClean: root.memoryClean, speedTest: root.speedTest
         )
         let hosting = NSHostingView(rootView: view)
         let window = offscreenWindow(hosting, size: NSSize(width: popoverWidth, height: popoverMaxHeight),
@@ -169,7 +170,7 @@ enum SnapshotCommand {
         navigation.select(.pane(pane))
         let view = SettingsView(
             settings: root.settings, monitor: root.monitor, purge: root.purge,
-            navigation: navigation, memoryClean: root.memoryClean
+            navigation: navigation, memoryClean: root.memoryClean, speedTest: root.speedTest
         )
         return offscreenWindow(NSHostingView(rootView: view), size: settingsSize, appearance: .aqua)
     }

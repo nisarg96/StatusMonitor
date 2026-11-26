@@ -20,7 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
      */
     func applicationDidFinishLaunching(_ notification: Notification) {
         statusBar = StatusBarController(
-            settings: root.settings, monitor: root.monitor, purge: root.purge, memoryClean: root.memoryClean
+            settings: root.settings, monitor: root.monitor, purge: root.purge, memoryClean: root.memoryClean,
+            speedTest: root.speedTest
         )
         root.monitor.start()
         root.purge.refresh { [weak self] outcome in

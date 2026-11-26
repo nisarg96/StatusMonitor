@@ -9,6 +9,8 @@ struct SettingsItemDetail: View {
     @ObservedObject var settings: SettingsViewModel
     /// The monitor, which supplies the live glyph and the history.
     @ObservedObject var monitor: MonitorViewModel
+    /// The speed test, shown in the Network item's detail. Nil hides its controls.
+    var speedTest: SpeedTestViewModel?
 
     private var config: MenuBarItemConfig { settings.settings.itemConfig(for: item) }
     private var bindings: SettingsItemBindings { SettingsItemBindings(settings: settings, monitor: monitor) }
@@ -33,6 +35,11 @@ struct SettingsItemDetail: View {
                     SettingsGroup(title: "Shows") {
                         Toggle("Upload", isOn: bindings.networkDirection(.upload))
                         Toggle("Download", isOn: bindings.networkDirection(.download))
+                    }
+                    if let speedTest {
+                        SettingsGroup(title: "Speed test") {
+                            SpeedTestPanel(model: speedTest)
+                        }
                     }
                 }
                 SettingsGroup(title: "Style") {

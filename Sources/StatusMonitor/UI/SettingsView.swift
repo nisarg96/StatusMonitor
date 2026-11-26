@@ -13,6 +13,8 @@ struct SettingsView: View {
     @ObservedObject var navigation: SettingsNavigation
     /// Nil until the app wires the clean use case in. Without it the Clean now controls are hidden.
     let memoryClean: MemoryCleanViewModel?
+    /// The speed test shown on the Network item. Nil hides its controls.
+    var speedTest: SpeedTestViewModel?
 
     var body: some View {
         HStack(spacing: 0) {
@@ -30,7 +32,9 @@ struct SettingsView: View {
     private var pane: some View {
         switch navigation.pane {
         case .menuBarItems:
-            SettingsMenuBarItemsPane(settings: settings, monitor: monitor, navigation: navigation)
+            SettingsMenuBarItemsPane(
+                settings: settings, monitor: monitor, navigation: navigation, speedTest: speedTest
+            )
         case .general:
             SettingsGeneralPane(settings: settings)
         case .memoryClean:
