@@ -4,13 +4,13 @@ import StatusMonitorCore
 import SwiftUI
 
 /**
- The AppKit view adapter: one `NSStatusItem` per metric, and a popover per item. It holds no business logic.
+ The AppKit view adapter: one `NSStatusItem` per metric, and one popover that shows all cards. It has no business logic.
 
  Items are created the first time they are visible and then kept. Hiding an item sets `isVisible = false`, which keeps
  its position in the menu bar. A removed item could lose that position.
 
- Clicking an item opens a popover with just that item's card. The anchor item, shown only when every metric is hidden,
- opens the full popover. Only one popover is open at a time.
+ Clicking any item opens the one popover, with all its cards, anchored to the item that was clicked. Only one popover
+ is open at a time.
  */
 @MainActor
 final class StatusBarController: NSObject, NSPopoverDelegate {
@@ -207,8 +207,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 return
             }
         }
-        let key = button.identifier?.rawValue ?? Self.fullKey
-        let target = popover(for: key)
+        let target = popover(for: Self.fullKey)
 
         if target.isShown {
             target.performClose(nil)
