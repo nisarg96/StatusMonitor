@@ -165,8 +165,9 @@ private struct ChartTooltipBox: View {
             Text(readout.valueText)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(PopoverPalette.text)
-                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
+        .fixedSize(horizontal: true, vertical: true)
         .padding(.horizontal, 6)
         .padding(.vertical, 3)
         .background(RoundedRectangle(cornerRadius: 6).fill(PopoverPalette.tooltipFill))
