@@ -29,7 +29,7 @@ You need a GitHub account and the Swift toolchain (Xcode or the Command Line Too
    ```
 
 7. **Open a pull request** from your fork's branch into `nisarg96/StatusMonitor`, base `main`. Describe what changed and how you checked it.
-8. **Respond to review.** Push more commits to the same branch; the pull request updates automatically. The maintainer merges the pull request and deletes the branch.
+8. **Respond to review.** Push more commits to the same branch; the pull request updates automatically. The maintainer merges the pull request, and GitHub deletes the branch from your fork. Delete your local copy of the branch as well.
 
 Keep your fork's `main` in step with the original by running `git fetch upstream` and `git merge upstream/main` (or rebase) before starting a new branch.
 
@@ -38,7 +38,7 @@ Keep your fork's `main` in step with the original by running `git fetch upstream
 - Do not commit directly to `main`. `main` is protected: changes must arrive through a pull request.
 - For each change, create a new branch from `main` (for example `feature/short-description` or `fix/short-description`).
 - Commit on that branch, push it, and open a pull request into `main`.
-- Merge the pull request once the checks pass. After the merge, delete the branch on GitHub and locally.
+- Merge the pull request once the checks pass. The repository is set to delete the head branch on GitHub when the pull request is merged. Also delete the branch locally.
 - Keep commit messages and pull request text free of assistant or tool names, and do not add co-author or generated-by lines.
 
 ## Before opening a pull request
