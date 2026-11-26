@@ -175,6 +175,7 @@ struct PopoverView: View {
                     upHistory: monitor.timedHistories[.networkUp] ?? TimedSampleHistory(),
                     downHistory: monitor.timedHistories[.networkDown] ?? TimedSampleHistory(),
                     today: monitor.dailyTraffic,
+                    directions: NetworkDirection.shown(in: metrics),
                     shown: metrics.showNetwork,
                     onToggle: { settings.setShowNetwork($0) }
                 )

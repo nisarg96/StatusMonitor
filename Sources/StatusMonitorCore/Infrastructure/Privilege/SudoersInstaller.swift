@@ -132,38 +132,6 @@ public final class SudoersInstaller: PurgePermissionService {
     }
 
     /**
-     Writes content to a private temporary file, with mode 0600, in the user's temp directory.
-
-     Install does not use this, because root must never read a user-writable file. It is kept for the check helpers.
-
-     - Parameters:
-       - content: The text to write.
-     - Returns: The URL of the new file.
-     - Throws: The error from writing the file or setting its permissions.
-     */
-    static func stage(_ content: String) throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent("statusmonitor-purge-\(UUID().uuidString).sudoers")
-        try content.write(to: url, atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
-        return url
-    }
-
-    /**
-     Runs `visudo -cf` on a file. Exit code 0 means the syntax is valid.
-
-     - Parameters:
-       - file: The sudoers file to check.
-     - Throws: `PurgePermissionError.validationFailed` with visudo's output when the syntax check fails.
-     */
-    static func validate(_ file: URL) throws {
-        let result = runProcess(visudoPath, arguments: ["-cf", file.path])
-        guard result.status == 0 else {
-            throw PurgePermissionError.validationFailed(result.output.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
-    }
-
-    /**
      Runs a shell command as root with the standard macOS administrator prompt.
 
      The command is escaped for an AppleScript string literal before it is sent to `osascript`.

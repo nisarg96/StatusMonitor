@@ -34,12 +34,7 @@ public enum ReadoutBuilder {
             ))
         }
         if settings.showNetwork {
-            rows.append(ReadoutRow(
-                id: "down", symbol: MetricSymbol.download, label: "Download",
-                value: sampled ? Format.rate(snapshot.downBps) : emptyValue))
-            rows.append(ReadoutRow(
-                id: "up", symbol: MetricSymbol.upload, label: "Upload",
-                value: sampled ? Format.rate(snapshot.upBps) : emptyValue))
+            rows.append(contentsOf: networkRows(snapshot, settings: settings))
         }
 
         if let gpu = snapshot.gpu {
@@ -73,6 +68,23 @@ public enum ReadoutBuilder {
             rows.append(contentsOf: thermalRows(thermal))
         }
 
+        return rows
+    }
+
+    /// The download and upload rows, limited to the directions the user has switched on.
+    private static func networkRows(_ snapshot: SystemSnapshot, settings: MetricSettings) -> [ReadoutRow] {
+        let directions = NetworkDirection.shown(in: settings)
+        var rows: [ReadoutRow] = []
+        if directions.contains(.download) {
+            rows.append(ReadoutRow(
+                id: "down", symbol: MetricSymbol.download, label: "Download",
+                value: snapshot.isSampled ? Format.rate(snapshot.downBps) : emptyValue))
+        }
+        if directions.contains(.upload) {
+            rows.append(ReadoutRow(
+                id: "up", symbol: MetricSymbol.upload, label: "Upload",
+                value: snapshot.isSampled ? Format.rate(snapshot.upBps) : emptyValue))
+        }
         return rows
     }
 

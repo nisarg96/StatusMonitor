@@ -156,6 +156,17 @@ public final class MonitorViewModel: ObservableObject {
         publishItems()
     }
 
+    /// The network directions the user has switched on. Empty hides the Network item from the bar.
+    private var networkDirections: [NetworkDirection] {
+        NetworkDirection.shown(in: currentSettings)
+    }
+
+    /// Whether an item is on the bar, before idle hiding. The Network item needs at least one direction switched on.
+    private func isOnBar(_ item: MetricItemID) -> Bool {
+        currentSettings.isMenuBarItemVisible(item, capabilities: capabilities)
+            && (item != .network || !networkDirections.isEmpty)
+    }
+
     /**
      Publishes the per-item state for the status bar.
 
@@ -166,9 +177,10 @@ public final class MonitorViewModel: ObservableObject {
         let canonical = MetricItemID.allCases
         let visible = canonical
             .filter { item in
-                currentSettings.isMenuBarItemVisible(item, capabilities: capabilities)
-                    && !MenuBarGlyphBuilder.isIdle(
-                        item, snapshot: snapshot, config: currentSettings.itemConfig(for: item))
+                isOnBar(item) && !MenuBarGlyphBuilder.isIdle(
+                    item, snapshot: snapshot, config: currentSettings.itemConfig(for: item),
+                    networkDirections: networkDirections
+                )
             }
             .sorted { lhs, rhs in
                 let order = currentSettings.menuBarOrder
@@ -176,7 +188,7 @@ public final class MonitorViewModel: ObservableObject {
             }
         visibleItems = visible
         candidateItems = canonical
-            .filter { currentSettings.isMenuBarItemVisible($0, capabilities: capabilities) }
+            .filter { isOnBar($0) }
             .sorted { lhs, rhs in
                 let order = currentSettings.menuBarOrder
                 return (order.firstIndex(of: lhs) ?? canonical.count) < (order.firstIndex(of: rhs) ?? canonical.count)
@@ -198,7 +210,8 @@ public final class MonitorViewModel: ObservableObject {
                 history: histories,
                 physicalMemoryBytes: physicalMemoryBytes,
                 ramThresholdPercent: currentSettings.autoCleanThresholdPercent,
-                cpuMode: currentSettings.cpuMode
+                cpuMode: currentSettings.cpuMode,
+                networkDirections: networkDirections
             ) {
                 glyphs[item] = glyph
             }

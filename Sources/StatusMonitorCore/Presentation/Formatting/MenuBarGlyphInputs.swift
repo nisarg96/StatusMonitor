@@ -14,6 +14,8 @@ struct MenuBarGlyphInputs: Sendable {
     let ramThresholdPercent: Int
     /// How the CPU item is shown: CPU percent, or used RAM in GB.
     let cpuMode: CPUDisplayMode
+    /// The network directions that are shown. The network item draws only these.
+    let networkDirections: [NetworkDirection]
 
     /// The item's display style.
     var style: MenuBarItemStyle { config.style }

@@ -9,15 +9,6 @@ struct SudoersRuleTests {
         #expect(SudoersRule.line(forUser: "nisarg") == "nisarg ALL=(root) NOPASSWD: /usr/sbin/purge \"\"")
     }
 
-    @Test("user names that could alter the sudoers syntax are refused")
-    func unsafeNamesRefused() {
-        #expect(SudoersRule.isSafeUserName("nisarg"))
-        #expect(SudoersRule.isSafeUserName("_svc-user.1"))
-        #expect(!SudoersRule.isSafeUserName(""))
-        #expect(!SudoersRule.isSafeUserName("a ALL=(ALL) ALL"))
-        #expect(!SudoersRule.isSafeUserName("a,b"))
-    }
-
     @Test("the install path is the statusmonitor-specific sudoers.d file")
     func installPath() {
         #expect(SudoersRule.installPath == "/etc/sudoers.d/statusmonitor-purge")

@@ -5,24 +5,30 @@ enum MenuBarGlyphRates {
     /**
      Builds the network item from the download and upload rates.
 
+     Only the enabled directions are drawn. With one direction, stacked falls back to a single line. Alerts look only at
+     the enabled directions.
+
      - Parameters:
        - inputs: The renderer inputs.
-     - Returns: The glyph for the current style.
+     - Returns: The glyph for the current style, or nil when no direction is enabled.
      */
     static func network(_ inputs: MenuBarGlyphInputs) -> MenuBarGlyph? {
+        let directions = inputs.networkDirections
+        guard let primary = directions.first else { return nil }
         let down = inputs.snapshot.downBps
         let upload = inputs.snapshot.upBps
-        let alert = inputs.isAlert(max(down, upload))
-        switch inputs.style {
-        case .stacked, .grouped:
+        let alert = inputs.isAlert(directions.map { $0.rate(upBps: upload, downBps: down) }.max() ?? 0)
+        if directions.count == 2, inputs.style == .stacked || inputs.style == .grouped {
             return .stacked(symbol: MetricSymbol.network, top: "↑ \(Format.rate(upload))",
                             bottom: "↓ \(Format.rate(down))", alert: alert)
-        case .sparkline:
-            return .sparkline(symbol: MetricSymbol.network, levels: inputs.levels(.networkDown, percentScale: false),
-                              value: "↓ \(Format.rate(down))", alert: alert)
-        default:
-            return .text(symbol: MetricSymbol.network, value: "↓ \(Format.rate(down))", alert: alert)
         }
+        let value = "\(primary.arrow) \(Format.rate(primary.rate(upBps: upload, downBps: down)))"
+        if inputs.style == .sparkline {
+            return .sparkline(symbol: MetricSymbol.network,
+                              levels: inputs.levels(primary.historySeries, percentScale: false),
+                              value: value, alert: alert)
+        }
+        return .text(symbol: MetricSymbol.network, value: value, alert: alert)
     }
 
     /**

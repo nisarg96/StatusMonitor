@@ -37,29 +37,6 @@ struct SudoersInstallerCheckTests {
         }
     }
 
-    @Test("the staged rule file is private to the user")
-    func stagedFileIsPrivate() throws {
-        let staged = try SudoersInstaller.stage("nisarg ALL=(root) NOPASSWD: /usr/sbin/purge \"\"\n")
-        defer { try? FileManager.default.removeItem(at: staged) }
-        let attributes = try FileManager.default.attributesOfItem(atPath: staged.path)
-        #expect((attributes[.posixPermissions] as? NSNumber)?.intValue == 0o600)
-    }
-
-    @Test("a valid rule passes visudo")
-    func validRulePasses() throws {
-        let staged = try SudoersInstaller.stage(SudoersRule.line(forUser: "nisarg") + "\n")
-        defer { try? FileManager.default.removeItem(at: staged) }
-        try SudoersInstaller.validate(staged)
-    }
-
-    @Test("a broken rule is rejected by visudo, so nothing would be installed")
-    func brokenRuleRejected() throws {
-        let staged = try SudoersInstaller.stage("this is not a sudoers rule\n")
-        defer { try? FileManager.default.removeItem(at: staged) }
-        #expect(throws: PurgePermissionError.self) {
-            try SudoersInstaller.validate(staged)
-        }
-    }
 }
 
 @Suite("PurgePermissionViewModel")

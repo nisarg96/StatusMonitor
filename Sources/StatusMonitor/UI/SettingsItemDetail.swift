@@ -29,6 +29,12 @@ struct SettingsItemDetail: View {
                         .labelsHidden()
                     }
                 }
+                if item == .network {
+                    SettingsGroup(title: "Shows") {
+                        Toggle("Upload", isOn: bindings.networkDirection(.upload))
+                        Toggle("Download", isOn: bindings.networkDirection(.download))
+                    }
+                }
                 SettingsGroup(title: "Style") {
                     SettingsStyleChips(item: item, selection: config.style) { style in
                         bindings.style(item, config).wrappedValue = style
@@ -54,7 +60,8 @@ struct SettingsItemDetail: View {
             snapshot: monitor.snapshot,
             config: config,
             history: monitor.histories,
-            physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory
+            physicalMemoryBytes: ProcessInfo.processInfo.physicalMemory,
+            networkDirections: NetworkDirection.shown(in: settings.settings)
         )
         let image = glyph.map { MenuBarImageRenderer.image(for: $0) }
             ?? MenuBarImageRenderer.iconOnly(symbol: SettingsSymbols.symbol(for: item))

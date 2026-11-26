@@ -87,7 +87,10 @@ struct SudoersInstallScriptTests {
 
     @Test("user names outside the strict character set are refused before any privileged command")
     func hostileNamesRefused() {
-        let hostile = ["o'brien", "a;rm -rf /", "$HOME", "a\"b", "a`id`", "a b", "na\u{EF}ve", "a\\b", "a$(id)"]
+        let hostile = [
+            "o'brien", "a;rm -rf /", "$HOME", "a\"b", "a`id`", "a b", "na\u{EF}ve", "a\\b", "a$(id)",
+            "a ALL=(ALL) ALL", "a,b"
+        ]
         for user in hostile {
             #expect(!SudoersInstaller.isStrictUserName(user), "accepted \(user)")
             let privileged = RecordingPrivilegedRunner()

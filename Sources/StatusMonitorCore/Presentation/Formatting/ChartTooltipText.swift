@@ -19,6 +19,23 @@ public enum ChartTooltipText {
     }
 
     /**
+     Builds the tooltip values for the network directions that are shown.
+
+     Upload comes before download, as in `network(upBps:downBps:)`.
+
+     - Parameters:
+       - upBps: The upload rate, in bytes per second.
+       - downBps: The download rate, in bytes per second.
+       - directions: The directions that are shown.
+     - Returns: One string per shown direction, such as "↓ 340.0 KB/s" when only download is shown.
+     */
+    public static func network(upBps: Double, downBps: Double, directions: [NetworkDirection]) -> [String] {
+        [NetworkDirection.upload, .download]
+            .filter { directions.contains($0) }
+            .map { "\($0.arrow) \(Format.rate($0.rate(upBps: upBps, downBps: downBps)))" }
+    }
+
+    /**
      Builds the tooltip values for disk I/O.
 
      - Parameters:
