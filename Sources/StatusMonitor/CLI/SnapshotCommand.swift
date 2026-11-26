@@ -75,9 +75,6 @@ enum SnapshotCommand {
         let dark = menuBarStrip(root.monitor, appearance: .darkAqua, fill: rgb(0x2B2F36))
         try write(dark, "menu-bar-dark.png", directory)
 
-        try write(capture(popoverWindow(root, appearance: .aqua)), "popover-light.png", directory)
-        try write(capture(popoverWindow(root, appearance: .darkAqua)), "popover-dark.png", directory)
-
         for (name, appearanceName) in [("light", NSAppearance.Name.aqua), ("dark", .darkAqua)] {
             try write(capture(popoverWindow(root, appearance: appearanceName, cleanOnly: true)),
                       "card-memory-clean-\(name).png", directory)
@@ -333,7 +330,7 @@ enum SnapshotCommand {
      Encodes a bitmap as PNG, writes it atomically into a folder, and prints the file's path and pixel size.
 
      - Parameter rep: The bitmap to write.
-     - Parameter name: The file name, such as `popover-light.png`.
+     - Parameter name: The file name, such as `card-cpu-light.png`.
      - Parameter directory: The folder to write into.
      - Throws: `CocoaError` when the bitmap cannot be encoded, or the error from writing the file.
      */
