@@ -69,14 +69,34 @@ struct MemoryCleanSettingsPane: View {
             in: Double(AutoCleanThreshold.minimumPercent)...Double(AutoCleanThreshold.maximumPercent),
             step: Double(AutoCleanThreshold.stepPercent))
             .disabled(!settings.settings.autoCleanEnabled)
-            HStack(spacing: 0) {
-                ForEach(AutoCleanThreshold.stops, id: \.self) { stop in
-                    Text("\(stop)%").frame(maxWidth: .infinity)
+            GeometryReader { geometry in
+                ForEach(Array(AutoCleanThreshold.stops.enumerated()), id: \.offset) { index, stop in
+                    Text("\(stop)%")
+                        .fixedSize()
+                        .position(x: Self.tickX(index: index, count: AutoCleanThreshold.stops.count,
+                                                width: geometry.size.width),
+                                  y: geometry.size.height / 2)
                 }
             }
+            .frame(height: 14)
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
         }
+    }
+
+    /**
+     The x position, in points, of a tick label's centre. It matches the slider's tick for that stop, which sits at
+     an equal fraction of the track width.
+
+     - Parameters:
+       - index: The stop's position in the list, starting at 0.
+       - count: The number of stops.
+       - width: The width of the track.
+     - Returns: The x position of the label's centre.
+     */
+    static func tickX(index: Int, count: Int, width: CGFloat) -> CGFloat {
+        guard count > 1 else { return width / 2 }
+        return width * CGFloat(index) / CGFloat(count - 1)
     }
 
     @ViewBuilder
