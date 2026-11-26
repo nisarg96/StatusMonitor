@@ -27,9 +27,12 @@ Each card is also rendered on its own, in light and dark.
 | Network and speed test | ![Network and speed test card, light](docs/images/card-network-light.png) | ![Network and speed test card, dark](docs/images/card-network-dark.png) |
 | Memory Clean | ![Memory Clean card, light](docs/images/card-memory-clean-light.png) | ![Memory Clean card, dark](docs/images/card-memory-clean-dark.png) |
 
-![Settings: menu bar items](docs/images/settings-menu-bar-items.png)
+### Settings
 
-![Settings: Memory Clean](docs/images/settings-memory-clean.png)
+| Pane | Light | Dark |
+|---|---|---|
+| Menu bar items | ![Settings, menu bar items, light](docs/images/settings-menu-bar-items-light.png) | ![Settings, menu bar items, dark](docs/images/settings-menu-bar-items-dark.png) |
+| Memory Clean | ![Settings, Memory Clean, light](docs/images/settings-memory-clean-light.png) | ![Settings, Memory Clean, dark](docs/images/settings-memory-clean-dark.png) |
 
 ## Features
 

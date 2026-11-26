@@ -88,12 +88,15 @@ enum SnapshotCommand {
                       "card-\(name)-dark.png", directory)
         }
 
-        let panes: [(file: String, pane: SettingsPane)] = [
-            ("settings-menu-bar-items.png", .menuBarItems),
-            ("settings-memory-clean.png", .memoryClean)
+        let panes: [(name: String, pane: SettingsPane)] = [
+            ("settings-menu-bar-items", .menuBarItems),
+            ("settings-memory-clean", .memoryClean)
         ]
         for entry in panes {
-            try write(capture(settingsWindow(root, pane: entry.pane)), entry.file, directory)
+            for mode in [AppearanceMode.light, .dark] {
+                try write(capture(settingsWindow(root, pane: entry.pane, appearance: mode)),
+                          "\(entry.name)-\(mode.rawValue).png", directory)
+            }
         }
     }
 
@@ -182,14 +185,18 @@ enum SnapshotCommand {
      - Parameter pane: The Settings pane to select.
      - Returns: The window, sized to `settingsSize`.
      */
-    private static func settingsWindow(_ root: CompositionRoot, pane: SettingsPane) -> NSWindow {
+    private static func settingsWindow(
+        _ root: CompositionRoot, pane: SettingsPane, appearance: AppearanceMode
+    ) -> NSWindow {
+        root.settings.setAppearance(appearance)
         let navigation = SettingsNavigation()
         navigation.select(.pane(pane))
         let view = SettingsView(
             settings: root.settings, monitor: root.monitor, purge: root.purge,
             navigation: navigation, memoryClean: root.memoryClean, speedTest: root.speedTest
         )
-        return offscreenWindow(NSHostingView(rootView: view), size: settingsSize, appearance: .aqua)
+        let drawn = appearance.nsAppearance ?? NSAppearance(named: .aqua)!
+        return offscreenWindow(NSHostingView(rootView: view), size: settingsSize, appearance: drawn.name)
     }
 
     /**
@@ -204,10 +211,31 @@ enum SnapshotCommand {
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size), styleMask: .borderless, backing: .buffered, defer: false
         )
-        window.appearance = NSAppearance(named: appearance)
+        let drawn = NSAppearance(named: appearance)
+        window.appearance = drawn
         window.isReleasedWhenClosed = false
+        window.isOpaque = true
+        window.backgroundColor = resolvedBackground(for: drawn)
+        content.wantsLayer = true
+        content.layer?.backgroundColor = resolvedBackground(for: drawn).cgColor
         window.contentView = content
         return window
+    }
+
+    /**
+     The window background in the given appearance, resolved now so the capture has no transparent pixels.
+
+     Without this, areas the views do not paint come out transparent in the PNG, and read as white in dark mode.
+
+     - Parameter appearance: The appearance to resolve the colour in.
+     - Returns: The resolved window background colour.
+     */
+    private static func resolvedBackground(for appearance: NSAppearance?) -> NSColor {
+        var resolved = NSColor.windowBackgroundColor
+        (appearance ?? NSAppearance.currentDrawing()).performAsCurrentDrawingAppearance {
+            resolved = NSColor.windowBackgroundColor.usingColorSpace(.sRGB) ?? NSColor.windowBackgroundColor
+        }
+        return resolved
     }
 
     /**
