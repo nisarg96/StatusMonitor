@@ -1,23 +1,20 @@
+import StatusMonitorCore
 import SwiftUI
 
 /// The "Open at login" switch, with the last failure from changing it shown underneath.
 struct PopoverLoginRow: View {
-    /// The current login item state.
-    let opensAtLogin: Bool
-    /// The message from the last failed change, or nil to hide it.
-    let errorText: String?
-    /// Called with the requested state when the switch is flipped.
-    let onChange: (Bool) -> Void
+    /// The settings model that holds the login item state. Observed, so the switch redraws when the state changes.
+    @ObservedObject var settings: SettingsViewModel
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Toggle(isOn: Binding(get: { opensAtLogin }, set: { onChange($0) })) {
+            Toggle(isOn: Binding(get: { settings.opensAtLogin }, set: { settings.setOpensAtLogin($0) })) {
                 Text("Open at login")
                     .font(.system(size: 13))
                     .foregroundStyle(PopoverPalette.text)
             }
             .toggleStyle(.switch)
-            if let errorText {
+            if let errorText = settings.loginItemError {
                 Text(errorText)
                     .font(.system(size: 11))
                     .foregroundStyle(PopoverPalette.critical)

@@ -11,6 +11,8 @@ struct SettingsItemRow: View {
     let item: MetricItemID
     /// The item's configuration, which supplies the style shown in the meta line.
     let config: MenuBarItemConfig
+    /// The values the row shows. The parent builds them from the settings, so a change to the settings redraws the row.
+    let state: SettingsItemRowState
     /// The bindings that the priority and show controls write through.
     let bindings: SettingsItemBindings
 
@@ -28,7 +30,7 @@ struct SettingsItemRow: View {
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 8)
-            Picker("Priority", selection: bindings.priority(item)) {
+            Picker("Priority", selection: bindings.priority(item, current: state.priority)) {
                 ForEach(MenuBarPriority.allCases, id: \.self) { priority in
                     Text(priority.label).tag(priority)
                 }
@@ -36,9 +38,12 @@ struct SettingsItemRow: View {
             .labelsHidden()
             .pickerStyle(.menu)
             .fixedSize()
-            Toggle("Show \(SettingsItemPresentation.name(for: item)) in menu bar", isOn: bindings.shown(item))
-                .labelsHidden()
-                .disabled(!bindings.isSupported(item))
+            Toggle(
+                "Show \(SettingsItemPresentation.name(for: item)) in menu bar",
+                isOn: bindings.shown(item, current: state.isShown)
+            )
+            .labelsHidden()
+            .disabled(!state.isSupported)
         }
         .padding(.vertical, 2)
     }

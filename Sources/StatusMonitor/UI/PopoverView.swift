@@ -48,11 +48,7 @@ struct PopoverView: View {
                     networkSection(metrics)
                     if only == nil {
                         cleanSection(metrics)
-                        PopoverLoginRow(
-                            opensAtLogin: settings.opensAtLogin,
-                            errorText: settings.loginItemError,
-                            onChange: { settings.setOpensAtLogin($0) }
-                        )
+                        PopoverLoginRow(settings: settings)
                     }
                 }
                 footer
