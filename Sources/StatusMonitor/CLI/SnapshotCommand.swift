@@ -78,6 +78,14 @@ enum SnapshotCommand {
         try write(capture(popoverWindow(root, appearance: .aqua)), "popover-light.png", directory)
         try write(capture(popoverWindow(root, appearance: .darkAqua)), "popover-dark.png", directory)
 
+        for item in cardItems {
+            let name = item.rawValue
+            try write(capture(popoverWindow(root, appearance: .aqua, only: item)),
+                      "card-\(name)-light.png", directory)
+            try write(capture(popoverWindow(root, appearance: .darkAqua, only: item)),
+                      "card-\(name)-dark.png", directory)
+        }
+
         let panes: [(file: String, pane: SettingsPane)] = [
             ("settings-menu-bar-items.png", .menuBarItems),
             ("settings-memory-clean.png", .memoryClean)
@@ -137,15 +145,22 @@ enum SnapshotCommand {
     // MARK: - Windows and capture
 
     /**
+     The metric items that get their own card image: every card the popover can show, in the design's order.
+     */
+    private static let cardItems: [MetricItemID] = [.cpu, .gpu, .memoryPressure, .disk, .battery, .thermal, .network]
+
+    /**
      Creates an offscreen window that holds the popover content, sized to its content up to the maximum height.
 
      - Parameter root: The composition root that supplies the view models.
      - Parameter appearance: The appearance the window draws in.
      - Returns: The window, sized to the popover's fitted height.
      */
-    private static func popoverWindow(_ root: CompositionRoot, appearance: NSAppearance.Name) -> NSWindow {
+    private static func popoverWindow(
+        _ root: CompositionRoot, appearance: NSAppearance.Name, only: MetricItemID? = nil
+    ) -> NSWindow {
         let view = PopoverView(
-            settings: root.settings, monitor: root.monitor, only: nil, openSettings: {},
+            settings: root.settings, monitor: root.monitor, only: only, openSettings: {},
             memoryClean: root.memoryClean, speedTest: root.speedTest
         )
         let hosting = NSHostingView(rootView: view)

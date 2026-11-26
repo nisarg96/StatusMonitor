@@ -16,6 +16,17 @@ CPU 8%  ↓ 2.1 MB/s  ↑ 0.4 MB/s
 |---|---|
 | ![StatusMonitor popover, light](docs/images/popover-light.png) | ![StatusMonitor popover, dark](docs/images/popover-dark.png) |
 
+### Cards
+
+Each card is also rendered on its own, in light and dark. Light versions are shown here.
+
+| Card | Light | Card | Light |
+|---|---|---|---|
+| CPU and memory | ![CPU and memory card](docs/images/card-cpu-light.png) | GPU | ![GPU card](docs/images/card-gpu-light.png) |
+| Memory pressure | ![Memory pressure card](docs/images/card-memoryPressure-light.png) | Disk I/O | ![Disk I/O card](docs/images/card-disk-light.png) |
+| Battery | ![Battery card](docs/images/card-battery-light.png) | Temperature and fans | ![Temperature and fans card](docs/images/card-thermal-light.png) |
+| Network and speed test | ![Network and speed test card](docs/images/card-network-light.png) |  |  |
+
 ![Settings: menu bar items](docs/images/settings-menu-bar-items.png)
 
 ![Settings: Memory Clean](docs/images/settings-memory-clean.png)
