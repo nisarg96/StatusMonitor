@@ -1,0 +1,28 @@
+import Darwin
+
+/// Available memory from host_statistics64, using AvailableMemoryCalculator (free + inactive + purgeable).
+/// Returns nil when the kernel call fails, so a clean reports "unmeasured" instead of a guessed number.
+public struct MachAvailableMemorySource: AvailableMemorySource {
+    public init() {}
+
+    public func readAvailableBytes() -> UInt64? {
+        var stats = vm_statistics64_data_t()
+        var count = mach_msg_type_number_t(
+            MemoryLayout<vm_statistics64_data_t>.size / MemoryLayout<integer_t>.size
+        )
+        let capacity = Int(count)
+        let kr = withUnsafeMutablePointer(to: &stats) { ptr in
+            ptr.withMemoryRebound(to: integer_t.self, capacity: capacity) {
+                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+            }
+        }
+        guard kr == KERN_SUCCESS else { return nil }
+
+        return AvailableMemoryCalculator.availableBytes(
+            freePages: UInt64(stats.free_count),
+            inactivePages: UInt64(stats.inactive_count),
+            purgeablePages: UInt64(stats.purgeable_count),
+            pageSize: UInt64(getpagesize())
+        )
+    }
+}

@@ -1,0 +1,31 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+*.o
+*.swp
+
+# Xcode (in case the package is opened in Xcode)
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+xcuserdata/
+
+# Build output from compile.sh
+build/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Editors
+.vscode/
+.idea/
+*.sublime-workspace
+
+# Local secrets and environment overrides
+.env
+.env.*
+*.local.plist
