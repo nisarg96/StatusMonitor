@@ -23,7 +23,7 @@ CPU 8%  ↓ 2.1 MB/s  ↑ 0.4 MB/s
 ## Features
 
 - **Live menu bar readouts** for CPU, RAM, network, disk, GPU, memory pressure, battery, and temperature. Only metrics your Mac can provide are shown.
-- **Popover with live details** in sections for CPU and memory, GPU, memory pressure, disk I/O, battery, network, and temperature and fans. Each section has its own toggles.
+- **Popover with live details.** Each card matches an item you have on the menu bar, so turning an item off in Settings also removes its card. Cards cover CPU and memory, GPU, memory pressure, disk I/O, battery, network, and temperature and fans.
 - **Speed test** on demand: press Run to measure download and upload in Mbit/s, latency and jitter. Nothing runs on its own. Packet loss is not measured yet.
 - **Battery details** on request: charge, health, cycle count, power source, Low Power Mode, and time remaining.
 - **Memory Clean** frees inactive memory using macOS's built-in `purge` command. It can run a Standard Clean or an Extreme Clean, and an **Auto Clean** can run it when used RAM passes a threshold you set.
