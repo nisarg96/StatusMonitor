@@ -12,10 +12,6 @@ CPU 8%  ↓ 2.1 MB/s  ↑ 0.4 MB/s
 |---|---|
 | ![StatusMonitor menu bar items, light](docs/images/menu-bar-light.png) | ![StatusMonitor menu bar items, dark](docs/images/menu-bar-dark.png) |
 
-| Popover, light | Popover, dark |
-|---|---|
-| ![StatusMonitor popover, light](docs/images/popover-light.png) | ![StatusMonitor popover, dark](docs/images/popover-dark.png) |
-
 ### Cards
 
 Each card is also rendered on its own, in light and dark. Light versions are shown here.
