@@ -10,6 +10,8 @@ final class CompositionRoot {
     let purge: PurgePermissionViewModel
     /// Manual Clean controls. Built from the same use case as Auto Clean.
     let memoryClean: MemoryCleanViewModel
+    /// Stored clean state, including the launch-time purge prompt's "Not now" choice.
+    let remediationStore: UserDefaultsRemediationStore
 
     /// Adapters for the headless `--dump-samples` mode. Chosen here so no other file in the executable builds them.
     nonisolated static func sampleDumpDependencies(
@@ -64,6 +66,7 @@ final class CompositionRoot {
         )
         self.settings = settings
         self.monitor = monitor
+        self.remediationStore = remediationStore
         // Snapshot mode: the runner never runs the work, so the purge row's onAppear check never reaches the installer.
         let purgeRunner: PurgePermissionViewModel.Runner = snapshot
             ? { _, _ in } : PurgePermissionViewModel.backgroundRunner

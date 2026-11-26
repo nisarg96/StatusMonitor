@@ -42,8 +42,9 @@ public final class PurgePermissionViewModel: ObservableObject {
     }
 
     /// Reads the current state. Never prompts. The check runs through the runner, so `sudo -n -l`
-    /// never blocks the main thread.
-    public func refresh() {
+    /// never blocks the main thread. `completion`, if given, runs on the main thread with this check's outcome,
+    /// even when a newer operation has since replaced `state`.
+    public func refresh(completion: ((State) -> Void)? = nil) {
         guard state != .working else { return }
         generation += 1
         let token = generation
@@ -51,8 +52,10 @@ public final class PurgePermissionViewModel: ObservableObject {
         runner({
             service.isInstalled() ? .installed : .notInstalled
         }, { [weak self] outcome in
-            guard let self, self.generation == token else { return }
-            self.state = outcome
+            if let self, self.generation == token {
+                self.state = outcome
+            }
+            completion?(outcome)
         })
     }
 
