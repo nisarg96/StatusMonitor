@@ -2,9 +2,17 @@ import Foundation
 
 /// Converts two cumulative tick samples into a busy percentage.
 public enum CPUUsageCalculator {
-    /// Busy percentage (0...100) between `previous` and `current`.
-    /// If no ticks elapsed between the samples, returns 0.
-    /// Counter deltas use wrapping subtraction so a 32-bit rollover does not produce garbage.
+    /**
+     Returns the busy CPU percentage between two tick samples.
+
+     If no ticks elapsed between the samples, the result is 0. Counter deltas use wrapping subtraction, so a 32-bit
+     rollover does not produce garbage.
+
+     - Parameters:
+       - previous: The earlier sample.
+       - current: The later sample.
+     - Returns: The busy percentage, 0...100.
+     */
     public static func usage(previous: CPUTicks, current: CPUTicks) -> Double {
         let busy = Double(current.user &- previous.user)
             + Double(current.system &- previous.system)

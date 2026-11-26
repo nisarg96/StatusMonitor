@@ -14,6 +14,13 @@
 - `./lint.sh` reports no findings.
 - `swift build` completes without errors.
 
+## Documentation comments
+
+- Every public declaration has a doc comment. SwiftLint's `missing_docs` rule enforces this.
+- Use the block form `/** ... */` for multi-line docs, so Option-click help shows them. Use `///` only for a one-line summary.
+- Structure: a one-sentence summary ending with a period, an optional discussion paragraph, then `- Parameters:`, `- Returns:` and `- Throws:` where they apply.
+- Do not add `//` comments that only narrate what the code does. Keep a comment only when it records a constraint or a non-obvious reason, and put it in the declaration's doc comment.
+
 ## Conventions
 
 The layer rules, the TDD convention, and the known limitations are described in [LIMITATIONS.md](docs/LIMITATIONS.md) and the project's design notes in `docs/`.

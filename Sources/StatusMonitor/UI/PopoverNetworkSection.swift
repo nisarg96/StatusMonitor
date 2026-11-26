@@ -1,15 +1,24 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// Network: download and upload rates, a 210 x 34 sparkline (upload solid, download dashed) that shows a tooltip on
-/// hover, and today's totals.
+/**
+ Network: download and upload rates, a 210 x 34 sparkline (upload solid, download dashed) that shows a tooltip on
+ hover, and today's totals.
+ */
 struct PopoverNetworkSection: View {
+    /// The latest upload rate, in bytes per second.
     let upBps: Double
+    /// The latest download rate, in bytes per second.
     let downBps: Double
+    /// The upload history charted as a solid line.
     let upHistory: TimedSampleHistory
+    /// The download history charted as a dashed line.
     let downHistory: TimedSampleHistory
+    /// Today's totals, or nil when there are none.
     let today: DailyTraffic?
+    /// The section's checkbox state.
     let shown: Bool
+    /// Called with the new visibility when the section's checkbox changes.
     let onToggle: (Bool) -> Void
 
     var body: some View {

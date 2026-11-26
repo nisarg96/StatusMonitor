@@ -4,15 +4,21 @@ import SwiftUI
 
 /// One line on a chart. Used by the Settings history preview; the popover uses `ChartLine` for its hover charts.
 struct ChartSeries: Identifiable {
+    /// The series' identifier, which names it in the chart's data.
     let id: String
+    /// The samples, oldest first.
     let values: [Double]
+    /// The line's colour.
     let color: Color
+    /// Draws the line dashed when true.
     var dashed = false
 }
 
 /// Summary figures for a history, shown as small text under the chart. Hidden when there is no history.
 struct HistoryStats: View {
+    /// The minimum, average and maximum of the history, or nil when there is no history.
     let stats: SeriesStatistics?
+    /// Formats one figure for display, such as a percent or a rate.
     let format: (Double) -> String
 
     var body: some View {
@@ -38,6 +44,7 @@ struct HistoryStats: View {
 
 /// Line chart of recent samples. Axes are hidden, so the chart stays compact in a card.
 struct HistoryChart: View {
+    /// The lines to draw, all sharing one y scale.
     let series: [ChartSeries]
     /// Fixed scale for percentages. Nil lets the chart fit its data.
     let yDomain: ClosedRange<Double>?

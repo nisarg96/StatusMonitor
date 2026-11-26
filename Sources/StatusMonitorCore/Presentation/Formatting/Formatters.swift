@@ -2,17 +2,39 @@ import Foundation
 
 /// Number formatting shared by the status bar and the popover.
 public enum Format {
-    /// "12%". Clamped to 0...100 and rounded to a whole percent.
+    /**
+     Formats a percentage, such as "12%".
+
+     Clamped to 0...100 and rounded to a whole percent.
+
+     - Parameters:
+       - value: The percentage, in percent.
+     */
     public static func percent(_ value: Double) -> String {
         "\(Int(min(100, max(0, value)).rounded()))%"
     }
 
-    /// "3.2 GB". GB here is GiB (1024³ bytes), matching how macOS reports memory.
+    /**
+     Formats a byte count as memory in GB, such as "3.2 GB".
+
+     GB here is GiB (1024³ bytes), matching how macOS reports memory.
+
+     - Parameters:
+       - bytes: The byte count.
+     */
     public static func gib(_ bytes: UInt64) -> String {
         String(format: "%.1f GB", Double(bytes) / 1_073_741_824)
     }
 
-    /// "1.2 MB/s". Uses 1024 steps, consistent with `gib`. Values under 1 KB/s show as bytes.
+    /**
+     Formats a byte rate for display, such as "1.2 MB/s".
+
+     Uses 1024 steps, consistent with `gib`. Values under 1 KB/s show as bytes.
+
+     - Parameters:
+       - bytesPerSecond: The rate, in bytes per second. Negative values show as zero.
+     - Returns: A string such as "1.2 MB/s" or "340 KB/s".
+     */
     public static func rate(_ bytesPerSecond: Double) -> String {
         let units = ["B/s", "KB/s", "MB/s", "GB/s"]
         var value = max(0, bytesPerSecond)
@@ -25,39 +47,79 @@ public enum Format {
         return "\(number) \(units[index])"
     }
 
-    /// "2h 14m", or "45m" under an hour.
+    /**
+     Formats a duration in minutes, such as "2h 14m", or "45m" under an hour.
+
+     - Parameters:
+       - minutes: The duration, in whole minutes.
+     */
     public static func duration(minutes: Int) -> String {
         let hours = minutes / 60
         let remainder = minutes % 60
         return hours > 0 ? "\(hours)h \(remainder)m" : "\(remainder)m"
     }
 
-    /// Signed power: "+12.4 W" while charging, "−1.9 W" while discharging.
+    /**
+     Formats a signed power value in watts.
+
+     Shows "+12.4 W" while charging and "−1.9 W" while discharging.
+
+     - Parameters:
+       - value: The power, in watts. Positive while charging, negative while discharging.
+     */
     public static func watts(_ value: Double) -> String {
         String(format: "%+.1f W", value).replacingOccurrences(of: "-", with: "−")
     }
 
-    /// "54 °C"
+    /**
+     Formats a temperature in degrees Celsius, such as "54 °C".
+
+     - Parameters:
+       - value: The temperature, in degrees Celsius.
+     */
     public static func celsius(_ value: Double) -> String {
         "\(Int(value.rounded())) °C"
     }
 }
 
-/// SF Symbol names for each metric. The UI draws these, and the status bar and popover share them,
-/// so an icon always means the same metric in both places.
+/**
+ SF Symbol names for each metric.
+
+ The UI draws these, and the status bar and popover share them, so an icon always means the same metric in both
+ places.
+ */
 public enum MetricSymbol {
+    /// CPU load.
     public static let cpu = "cpu"
+    /// Used memory (RAM).
     public static let memory = "memorychip"
+    /// The memory pressure gauge at its middle needle position. Per-level symbols come from `MemoryPressureNeedle`.
     public static let memoryPressure = "gauge.with.dots.needle.50percent"
+    /// GPU utilization.
     public static let gpu = "display"
+    /// Network throughput.
     public static let network = "network"
+    /// Download direction.
     public static let download = "arrow.down.circle"
+    /// Upload direction.
     public static let upload = "arrow.up.circle"
+    /// Disk I/O.
     public static let disk = "internaldrive"
+    /// Temperature.
     public static let thermal = "thermometer.medium"
+    /// Fan speed.
     public static let fan = "fan"
 
-    /// Battery icon for a charge level: battery.0 / .25 / .50 / .75 / .100. Charging uses the bolt variant.
+    /**
+     Returns the battery icon for a charge level.
+
+     Charging uses the bolt variant.
+
+     - Parameters:
+       - percent: The charge level, in percent.
+       - charging: Whether the battery is charging.
+     - Returns: The SF Symbol name, such as "battery.75" or "battery.100.bolt".
+     */
     public static func battery(percent: Int, charging: Bool) -> String {
         if charging { return "battery.100.bolt" }
         let level: Int
@@ -72,12 +134,27 @@ public enum MetricSymbol {
     }
 }
 
-/// One item in the menu bar: an icon, then a value. `plainLabel` is only used for the plain-text title.
+/**
+ One item in the menu bar: an icon, then a value.
+
+ `plainLabel` is only used for the plain-text title.
+ */
 public struct TitleSegment: Equatable, Sendable {
+    /// The SF Symbol name drawn before the value.
     public let symbol: String
+    /// The label used in the plain-text title. Empty when the item has none.
     public let plainLabel: String
+    /// The formatted value, such as "8%".
     public let value: String
 
+    /**
+     Creates a segment from its symbol, plain label and value.
+
+     - Parameters:
+       - symbol: The SF Symbol name drawn before the value.
+       - plainLabel: The label used in the plain-text title. Empty when the item has none.
+       - value: The formatted value.
+     */
     public init(symbol: String, plainLabel: String, value: String) {
         self.symbol = symbol
         self.plainLabel = plainLabel
@@ -90,9 +167,21 @@ public struct TitleSegment: Equatable, Sendable {
     }
 }
 
-/// Builds the menu bar segments from whichever values are present. A missing value drops its segment,
-/// so there are no empty separators, no "N/A", and no zeros.
+/**
+ Builds the menu bar segments and the plain-text title from the values that are present.
+
+ A missing value drops its segment, so there are no empty separators, no "N/A", and no zeros.
+ */
 public enum StatusTitleFormatter {
+    /**
+     Returns the menu bar segments for a snapshot, in display order.
+
+     Returns no segments before the first sample.
+
+     - Parameters:
+       - snapshot: The latest system snapshot.
+       - settings: The user's settings, which decide which items are shown.
+     */
     public static func segments(for snapshot: SystemSnapshot, settings: MetricSettings) -> [TitleSegment] {
         guard snapshot.isSampled else { return [] }
         var segments: [TitleSegment] = []
@@ -137,6 +226,7 @@ public enum StatusTitleFormatter {
         return segments
     }
 
+    /// Returns the CPU slot's segments. In `.memoryGB` mode the slot shows RAM, so no separate RAM item is added.
     private static func cpuSegments(_ snapshot: SystemSnapshot, settings: MetricSettings) -> [TitleSegment] {
         var segments: [TitleSegment] = []
         switch settings.cpuMode {
@@ -145,7 +235,6 @@ public enum StatusTitleFormatter {
                 symbol: MetricSymbol.cpu, plainLabel: "CPU",
                 value: Format.percent(snapshot.cpuPercent)))
         case .memoryGB:
-            // The CPU slot shows RAM in this mode, so a separate RAM item would repeat it.
             if settings.isMenuBarItemShown(.ram) {
                 segments.append(TitleSegment(
                     symbol: MetricSymbol.memory, plainLabel: "RAM",
@@ -160,22 +249,40 @@ public enum StatusTitleFormatter {
         return segments
     }
 
-    /// Plain-text title, e.g. "CPU 8% · GPU 12% · 🔋 84%". Returns "SM" when nothing is shown,
-    /// so the status item stays clickable.
+    /**
+     Returns the plain-text menu bar title.
+
+     Returns "SM" when nothing is shown, so the status item stays clickable.
+
+     - Parameters:
+       - snapshot: The latest system snapshot.
+       - settings: The user's settings, which decide which items are shown.
+     - Returns: A title such as "CPU 8% · GPU 12% · 🔋 84%".
+     */
     public static func title(for snapshot: SystemSnapshot, settings: MetricSettings) -> String {
         let segments = segments(for: snapshot, settings: settings)
         return segments.isEmpty ? "SM" : segments.map(\.plainText).joined(separator: " · ")
     }
 }
 
-/// One segment per status bar item. Returns nil when the item has no value yet, so the caller can show the icon alone.
+/// Builds the value segment for one status bar item.
 public enum MenuBarItemFormatter {
+    /**
+     Returns the value segment for one status bar item.
+
+     Returns nil when the item has no value yet, including before the first sample, so the icon shows alone.
+
+     - Parameters:
+       - item: The status bar item.
+       - snapshot: The latest system snapshot.
+       - settings: The user's settings. Not read by this function.
+     - Returns: The item's segment, or nil when it has no value.
+     */
     public static func segment(
         for item: MetricItemID,
         snapshot: SystemSnapshot,
         settings: MetricSettings
     ) -> TitleSegment? {
-        // Before the first sample the value is not real, so the item shows its icon alone.
         guard snapshot.isSampled else { return nil }
         return sampledSegment(for: item, snapshot: snapshot)
     }
@@ -229,15 +336,30 @@ public enum MenuBarItemFormatter {
 
 /// One line in the popover's live readout.
 public struct ReadoutRow: Equatable, Identifiable, Sendable {
+    /// A stable identifier for the row, such as "cpu" or "diskRead".
     public let id: String
     /// The optional collector this row belongs to. Nil for the always-on CPU, RAM, and network rows.
     public let collector: CollectorKind?
     /// SF Symbol shown before the label.
     public let symbol: String
+    /// The row's label, such as "CPU temp".
     public let label: String
+    /// The formatted value, such as "12%".
     public let value: String
+    /// The colour state of the value, or nil for the default colour.
     public let accent: ReadoutAccent?
 
+    /**
+     Creates a readout row.
+
+     - Parameters:
+       - id: A stable identifier for the row.
+       - collector: The optional collector the row belongs to. Nil for the always-on rows.
+       - symbol: The SF Symbol shown before the label.
+       - label: The row's label.
+       - value: The formatted value.
+       - accent: The colour state of the value, or nil for the default colour.
+     */
     public init(
         id: String,
         collector: CollectorKind? = nil,
@@ -257,6 +379,14 @@ public struct ReadoutRow: Equatable, Identifiable, Sendable {
 
 /// Parses the free-text interface field ("en0, utun3") into a set of names.
 public enum InterfaceAllowListParser {
+    /**
+     Splits the interface field into names.
+
+     Names are separated by commas. Spaces are trimmed and empty entries are dropped.
+
+     - Parameters:
+       - text: The raw text of the field.
+     */
     public static func parse(_ text: String) -> Set<String> {
         Set(
             text.split(separator: ",")

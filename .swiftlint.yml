@@ -3,3 +3,6 @@ excluded:
   - .build
   - build
   - .swiftpm
+
+opt_in_rules:
+  - missing_docs

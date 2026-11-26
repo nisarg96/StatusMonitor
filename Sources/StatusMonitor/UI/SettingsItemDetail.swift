@@ -3,8 +3,11 @@ import SwiftUI
 
 /// The detail pane for one menu bar item: its light and dark previews, shows, style, options and history.
 struct SettingsItemDetail: View {
+    /// The menu bar item being configured.
     let item: MetricItemID
+    /// The settings view model that the controls edit.
     @ObservedObject var settings: SettingsViewModel
+    /// The monitor, which supplies the live glyph and the history.
     @ObservedObject var monitor: MonitorViewModel
 
     private var config: MenuBarItemConfig { settings.settings.itemConfig(for: item) }

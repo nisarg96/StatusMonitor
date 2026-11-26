@@ -2,7 +2,6 @@ import AppKit
 import Foundation
 import StatusMonitorCore
 
-// Diagnostic mode: print samples to stdout and exit without starting the GUI.
 switch DumpSamplesArguments.parse(CommandLine.arguments) {
 case .success(nil):
     break
@@ -15,7 +14,6 @@ case .failure(let error):
     exit(2)
 }
 
-// Snapshot mode: render the real views to PNG files in a folder, then exit. Nothing is started or cleaned.
 switch SnapshotArguments.parse(CommandLine.arguments) {
 case .success(nil):
     break

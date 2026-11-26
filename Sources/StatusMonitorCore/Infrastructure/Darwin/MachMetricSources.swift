@@ -1,9 +1,22 @@
 import Darwin
 
-/// CPU ticks via host_statistics(HOST_CPU_LOAD_INFO). No shelling out.
+/**
+ Reads cumulative CPU tick counters with `host_statistics(HOST_CPU_LOAD_INFO)`.
+
+ Does not shell out to `top` or `ps`.
+ */
 public struct MachCPUTickSource: CPUTickSource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
+    /**
+     Reads the current cumulative CPU ticks.
+
+     The kernel tuple is ordered user, system, idle, nice. The counters are 32-bit and wrap, so callers take
+     deltas with wrapping subtraction.
+
+     - Returns: The counters, or nil when the kernel call fails.
+     */
     public func readTicks() -> CPUTicks? {
         var info = host_cpu_load_info_data_t()
         var count = mach_msg_type_number_t(
@@ -17,18 +30,28 @@ public struct MachCPUTickSource: CPUTickSource {
         }
         guard kernelResult == KERN_SUCCESS else { return nil }
 
-        // Tuple order: CPU_STATE_USER, CPU_STATE_SYSTEM, CPU_STATE_IDLE, CPU_STATE_NICE.
         let ticks = info.cpu_ticks
         return CPUTicks(user: ticks.0, system: ticks.1, idle: ticks.2, nice: ticks.3)
     }
 }
 
-/// Used RAM via host_statistics64(HOST_VM_INFO64).
+/**
+ Reads used RAM with `host_statistics64(HOST_VM_INFO64)`.
+
+ It uses the same definition of "used" as Activity Monitor.
+ */
 public struct MachMemoryUsageSource: MemoryUsageSource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
-    /// "Used" = app memory + wired + compressed, the same definition Activity Monitor uses:
-    /// app memory = internal pages - purgeable pages. File-backed cache is excluded.
+    /**
+     Reads used RAM in bytes.
+
+     Used = app memory + wired + compressed. App memory = internal pages - purgeable pages. File-backed cache is
+     excluded. The page count is multiplied by the system page size.
+
+     - Returns: Used bytes, or nil when the kernel call fails.
+     */
     public func readUsedBytes() -> UInt64? {
         var stats = vm_statistics64_data_t()
         var count = mach_msg_type_number_t(

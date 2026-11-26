@@ -1,43 +1,73 @@
 import Foundation
 import StatusMonitorCore
 
-/// Composition root: the only place that chooses concrete adapters.
-/// Everything above it depends on protocols, which keeps the core testable.
+/**
+ The composition root: the only place that chooses concrete adapters.
+
+ Everything above it depends on protocols, which keeps the core testable.
+ */
 @MainActor
 final class CompositionRoot {
+    /// The settings view model, shared by the status bar, the popover and the Settings window.
     let settings: SettingsViewModel
+    /// The monitor that samples the system and publishes the readings.
     let monitor: MonitorViewModel
+    /// The administrator approval state for purge.
     let purge: PurgePermissionViewModel
     /// Manual Clean controls. Built from the same use case as Auto Clean.
     let memoryClean: MemoryCleanViewModel
     /// Stored clean state, including the launch-time purge prompt's "Not now" choice.
     let remediationStore: UserDefaultsRemediationStore
 
-    /// Adapters for the headless `--dump-samples` mode. Chosen here so no other file in the executable builds them.
+    /**
+     Creates the metric sources and settings for the headless `--dump-samples` mode.
+
+     The adapters are chosen here, so no other file in the executable builds them.
+
+     - Parameter defaults: The defaults store the settings are read from.
+     - Returns: The metric sources and the settings loaded from `defaults`.
+     */
     nonisolated static func sampleDumpDependencies(
         defaults: UserDefaults = .standard
     ) -> (sources: MetricSources, settings: MetricSettings) {
         (LiveMetricSources.make(), UserDefaultsSettingsRepository(defaults: defaults).load())
     }
 
-    /// The Clean now buttons run the shared use case. Built outside the main actor, because the view model runs
-    /// the clean on a background queue.
+    /**
+     Returns the action for the Clean now buttons. It runs the shared use case with the "manual" trigger.
+
+     It is built outside the main actor, because the view model runs the clean on a background queue.
+
+     - Parameter useCase: The clean use case that Auto Clean also uses.
+     - Returns: A function that runs the clean for a preset and returns its outcome.
+     */
     nonisolated static func manualClean(_ useCase: MemoryCleanUseCase) -> (CleanPreset) -> CleanOutcome {
         { preset in useCase.clean(preset, trigger: "manual") }
     }
 
-    /// `snapshot` is the `--snapshot` developer flag. The root is wired the same way, except that no Auto Clean
-    /// coordinator is built (so a refresh cannot start a clean) and the purge row never reaches the installer.
+    /**
+     Wires the view models, adapters and background work for the app or for a snapshot.
+
+     Auto Clean runs the same Standard Clean that the user can press, triggered by the threshold. One executor is
+     shared by Auto Clean and the installer, so an install is seen at once through their common availability cache.
+
+     In snapshot mode no Auto Clean coordinator is built, so a refresh cannot start a clean. The purge runner also does
+     nothing, so the purge row's onAppear check never reaches the installer.
+
+     The helper is checked at startup, off the main thread, so the first due tick already has an answer. The capability
+     probe may open the SMC and enumerate sensors, so it also runs off the main thread, and its result is applied back
+     on the main thread.
+
+     - Parameter defaults: The defaults store for settings, daily traffic and the remediation log.
+     - Parameter snapshot: True for the `--snapshot` developer flag.
+     */
     init(defaults: UserDefaults = .standard, snapshot: Bool = false) {
         let settings = SettingsViewModel(
             repository: UserDefaultsSettingsRepository(defaults: defaults),
             loginItem: SMAppLoginItemService()
         )
         let sources = LiveMetricSources.make()
-        // One executor for the app. Auto Clean and the installer share its availability cache, so an install is seen
-        // at once.
         let purgeExecutor = SudoersPurgeExecutor()
-        // Auto Clean: the same Standard Clean the user can press, triggered by the threshold.
         let remediationStore = UserDefaultsRemediationStore(defaults: defaults)
         let cleanUseCase = MemoryCleanUseCase(
             purge: purgeExecutor,
@@ -54,7 +84,6 @@ final class CompositionRoot {
             monotonic: SystemMonotonicClock(),
             invalidateHelperCache: { purgeExecutor.invalidateAvailability() }
         )
-        // Check the helper now, off the main thread, so the first due tick already has an answer.
         autoClean?.primeAvailability()
 
         let monitor = MonitorViewModel(
@@ -67,7 +96,6 @@ final class CompositionRoot {
         self.settings = settings
         self.monitor = monitor
         self.remediationStore = remediationStore
-        // Snapshot mode: the runner never runs the work, so the purge row's onAppear check never reaches the installer.
         let purgeRunner: PurgePermissionViewModel.Runner = snapshot
             ? { _, _ in } : PurgePermissionViewModel.backgroundRunner
         self.purge = PurgePermissionViewModel(
@@ -77,8 +105,6 @@ final class CompositionRoot {
         )
         self.memoryClean = MemoryCleanViewModel(clean: Self.manualClean(cleanUseCase))
 
-        // The probe may open the SMC and enumerate sensors, so it runs off the main thread.
-        // Its result is applied back on the main thread.
         let probe = CapabilityProbe(sources: sources)
         DispatchQueue.global(qos: .utility).async {
             let capabilities = probe.run()

@@ -1,11 +1,17 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// The style chips. The selected chip is filled #1D1D1F in light mode. A style the item does not allow
-/// is greyed and cannot be picked.
+/**
+ The style chips.
+
+ The selected chip is filled #1D1D1F in light mode. A style the item does not allow is greyed and cannot be picked.
+ */
 struct SettingsStyleChips: View {
+    /// The menu bar item whose styles are offered.
     let item: MetricItemID
+    /// The item's current style, which is drawn as selected.
     let selection: MenuBarItemStyle
+    /// Called with the style that was picked.
     let onPick: (MenuBarItemStyle) -> Void
 
     var body: some View {

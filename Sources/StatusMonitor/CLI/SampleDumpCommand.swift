@@ -1,10 +1,23 @@
 import Foundation
 import StatusMonitorCore
 
-/// Headless diagnostic: `StatusMonitor --dump-samples [count]`.
-/// Runs the same probe, use case, and formatter as the GUI, and prints the menu bar text every 2 s.
-/// It also prints the probe result and the raw readings, so you can compare them with system tools.
+/**
+ The headless diagnostic behind `StatusMonitor --dump-samples [count]`.
+
+ It runs the same probe, use case and formatter as the GUI and prints the menu bar text every 2 s. It also prints the
+ probe result and the raw readings, so they can be compared with system tools.
+ */
 enum SampleDumpCommand {
+    /**
+     Prints the probe result, then a baseline reading, then one menu bar line and its readout rows per sample.
+
+     The loop uses `stride`, which never traps. A count below 1 therefore prints no samples, where a closed range
+     `1...count` would trap.
+
+     - Parameter count: The number of samples to print after the baseline.
+     - Parameter sources: The metric sources to read from.
+     - Parameter settings: The settings that decide the menu bar text and the readout rows.
+     */
     static func run(count: Int, sources: MetricSources, settings: MetricSettings) {
         setbuf(stdout, nil)
 
@@ -14,9 +27,8 @@ enum SampleDumpCommand {
 
         let useCase = SampleSystemMetricsUseCase(sources: sources)
         useCase.updateConfiguration(filter: InterfaceFilter.from(settings), enabled: enabled)
-        _ = useCase.execute() // baseline
+        _ = useCase.execute()
 
-        // stride never traps, even for a count below 1 (a closed range 1...count would).
         for index in stride(from: 1, through: count, by: 1) {
             Thread.sleep(forTimeInterval: MonitorViewModel.openInterval)
             let snapshot = useCase.execute()

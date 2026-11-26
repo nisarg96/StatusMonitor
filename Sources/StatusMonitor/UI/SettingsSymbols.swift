@@ -1,7 +1,13 @@
 import StatusMonitorCore
 
-/// SF Symbol for each menu bar item. Used where an item needs a picture of itself, such as the preview fallback.
+/// The SF Symbol for each menu bar item, used where an item needs a picture of itself, such as the preview fallback.
 enum SettingsSymbols {
+    /**
+     Returns the SF Symbol name for a menu bar item.
+
+     - Parameter item: The menu bar item.
+     - Returns: The symbol name.
+     */
     static func symbol(for item: MetricItemID) -> String {
         switch item {
         case .cpu: return MetricSymbol.cpu

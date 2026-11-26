@@ -1,10 +1,24 @@
 import Foundation
 
-/// Builds the popover rows. A row exists only when its value exists, so nothing is shown as zero or N/A.
+/**
+ Builds the popover rows.
+
+ A row exists only when its value exists, so nothing is shown as zero or N/A.
+ */
 public enum ReadoutBuilder {
     /// Shown in place of a value before the first sample.
     public static let emptyValue = "--"
 
+    /**
+     Returns the popover readout rows for a snapshot, in display order.
+
+     Each battery row is filtered by its own detail toggle in `settings`.
+
+     - Parameters:
+       - snapshot: The latest system snapshot.
+       - settings: The user's settings, which decide which sections and battery rows are shown.
+     - Returns: The rows, in display order.
+     */
     public static func rows(for snapshot: SystemSnapshot, settings: MetricSettings) -> [ReadoutRow] {
         var rows: [ReadoutRow] = []
         let sampled = snapshot.isSampled
@@ -49,7 +63,6 @@ public enum ReadoutBuilder {
         }
 
         if let battery = snapshot.battery {
-            // Each battery row is filtered by its own detail toggle.
             rows.append(contentsOf: batteryRows(battery).filter { row in
                 guard let detail = batteryDetail(forRowID: row.id) else { return true }
                 return settings.isBatteryDetailShown(detail)
@@ -94,7 +107,16 @@ public enum ReadoutBuilder {
         return rows
     }
 
-    /// Colour for used RAM, from the RAM threshold. Nil when total RAM is unknown, so no colour is guessed.
+    /**
+     Returns the colour for used RAM, from the RAM threshold.
+
+     Nil when total RAM is unknown, so no colour is guessed.
+
+     - Parameters:
+       - snapshot: The latest system snapshot.
+       - settings: The user's settings, which hold the RAM threshold.
+     - Returns: The accent for used RAM, or nil when it cannot be computed.
+     */
     static func ramAccent(_ snapshot: SystemSnapshot, settings: MetricSettings) -> ReadoutAccent? {
         guard snapshot.isSampled, let percent = RAMAlertLevel.usedPercent(
             usedBytes: snapshot.memoryUsedBytes,
@@ -103,7 +125,13 @@ public enum ReadoutBuilder {
         return RAMAlertLevel.level(usedPercent: percent, thresholdPercent: settings.autoCleanThresholdPercent)
     }
 
-    /// Maps a battery row id to the detail toggle that controls it.
+    /**
+     Maps a battery row id to the detail toggle that controls it.
+
+     - Parameters:
+       - id: The row's identifier, such as "batt" or "lpm".
+     - Returns: The detail that controls the row, or nil when no toggle controls it.
+     */
     static func batteryDetail(forRowID id: String) -> BatteryDetail? {
         switch id {
         case "batt": return .charge

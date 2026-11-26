@@ -4,7 +4,13 @@ import IOKit.ps
 
 // MARK: - IOKit helpers
 
-/// Iterates the services matching a class name, releasing each one after use.
+/**
+ Iterates the services matching a class name, releasing each one after use.
+
+ - Parameters:
+   - className: The IOKit class to match, for example `IOAccelerator`.
+   - body: Called once per matching service. The service is valid only for the duration of the call.
+ */
 private func forEachService(matching className: String, _ body: (io_service_t) -> Void) {
     guard let matching = IOServiceMatching(className) else { return }
     var iterator: io_iterator_t = 0
@@ -19,7 +25,14 @@ private func forEachService(matching className: String, _ body: (io_service_t) -
     }
 }
 
-/// Reads one registry property as a dictionary. Nil when the property is missing or has another type.
+/**
+ Reads one registry property as a dictionary.
+
+ - Parameters:
+   - service: The registry entry to read.
+   - key: The property name.
+ - Returns: The property as a dictionary, or nil when it is missing or has another type.
+ */
 private func dictionaryProperty(_ service: io_service_t, _ key: String) -> [String: Any]? {
     IORegistryEntryCreateCFProperty(service, key as CFString, kCFAllocatorDefault, 0)?
         .takeRetainedValue() as? [String: Any]
@@ -27,10 +40,16 @@ private func dictionaryProperty(_ service: io_service_t, _ key: String) -> [Stri
 
 // MARK: - GPU
 
-/// GPU utilization and VRAM from the IOAccelerator service's PerformanceStatistics.
+/// Reads GPU utilization and VRAM from the IOAccelerator service's PerformanceStatistics.
 public struct IOKitGPUSource: GPUSource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
+    /**
+     Reads the first IOAccelerator that reports usable statistics.
+
+     - Returns: Utilization in percent and VRAM in bytes, or nil when no service reports a usable utilization value.
+     */
     public func read() -> GPUReading? {
         var result: GPUReading?
         forEachService(matching: "IOAccelerator") { service in
@@ -44,12 +63,21 @@ public struct IOKitGPUSource: GPUSource {
 
 // MARK: - Disk
 
-/// Cumulative read and write bytes summed across IOBlockStorageDriver services.
-/// Summing per driver instance may double-count if a virtual disk stacks on another driver. Physical disks are the
-/// main case.
+/**
+ Reads cumulative disk read and write bytes, summed across IOBlockStorageDriver services.
+
+ Summing per driver instance may double-count if a virtual disk stacks on another driver. Physical disks are the
+ main case.
+ */
 public struct IOKitDiskCounterSource: DiskCounterSource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
+    /**
+     Reads the summed cumulative disk byte counters.
+
+     - Returns: Read and write totals in bytes since boot, or nil when no driver reports a counter.
+     */
     public func readCounters() -> DiskCounters? {
         var drivers: [[String: Any]] = []
         forEachService(matching: "IOBlockStorageDriver") { service in
@@ -63,10 +91,22 @@ public struct IOKitDiskCounterSource: DiskCounterSource {
 
 // MARK: - Battery
 
-/// Internal battery state. Power source data comes from IOPS. Health and cycle count come from AppleSmartBattery.
+/**
+ Reads internal battery state.
+
+ Power source data comes from IOPS. Health and cycle count come from AppleSmartBattery.
+ */
 public struct IOKitBatterySource: BatterySource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
+    /**
+     Reads the internal battery.
+
+     Low Power Mode and the power flow are filled in from the system and from the AppleSmartBattery registry.
+
+     - Returns: The battery reading, or nil on a Mac without an internal battery or when no power source is reported.
+     */
     public func read() -> BatteryReading? {
         guard let info = IOPSCopyPowerSourcesInfo()?.takeRetainedValue(),
               let sources = IOPSCopyPowerSourcesList(info)?.takeRetainedValue() as? [CFTypeRef] else {
@@ -92,6 +132,13 @@ public struct IOKitBatterySource: BatterySource {
         return nil
     }
 
+    /**
+     Copies the AppleSmartBattery properties that health, cycle count and power flow need.
+
+     - Parameters:
+       - service: The AppleSmartBattery registry entry.
+     - Returns: The properties that exist, keyed by name.
+     */
     private static func batteryRegistry(_ service: io_service_t) -> [String: Any] {
         var values: [String: Any] = [:]
         for key in ["CycleCount", "DesignCapacity", "AppleRawMaxCapacity", "NominalChargeCapacity",

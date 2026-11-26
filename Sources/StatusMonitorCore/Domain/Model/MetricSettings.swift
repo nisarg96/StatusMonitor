@@ -4,16 +4,22 @@ import Foundation
 public enum CPUDisplayMode: String, CaseIterable, Equatable, Sendable {
     /// Busy CPU percentage, e.g. "CPU 12%".
     case percent
-    /// Used RAM in GB, e.g. "RAM 3.2 GB".
-    /// Interpretation: "GB" means used memory (app + wired + compressed), not CPU load.
-    /// The bar label is "RAM" so the number is not mistaken for CPU.
+    /**
+     Used RAM in GiB (1024^3 bytes), shown with the label "GB", e.g. "RAM 3.2 GB".
+
+     "GB" means used memory (app + wired + compressed), not CPU load. The bar label is "RAM" so the number is not
+     mistaken for CPU.
+     */
     case memoryGB
 }
 
 /// Which colour theme the popover and Settings window use. System follows the Mac's appearance.
 public enum AppearanceMode: String, CaseIterable, Codable, Sendable {
+    /// Follows the Mac's appearance.
     case system
+    /// Always uses the light theme.
     case light
+    /// Always uses the dark theme.
     case dark
 }
 
@@ -25,20 +31,31 @@ public enum BatteryDetail: String, CaseIterable, Codable, Sendable {
     case powerFlow
     /// The battery percentage in the menu bar. Separate from the popover row, so each can be hidden on its own.
     case menuBarCharge
+    /// The battery health percentage.
     case health
+    /// The battery cycle count.
     case cycles
+    /// Whether the battery is charging, and whether the Mac is on AC power.
     case powerState
+    /// The System Low Power Mode status.
     case lowPowerMode
+    /// The estimated time to empty or to full.
     case timeRemaining
 }
 
 /// Items that can appear in the menu bar. CPU and network keep their own on/off switches (`showCPU`, `showNetwork`).
 public enum MenuBarItem: String, CaseIterable, Codable, Sendable {
+    /// The RAM item.
     case ram
+    /// The GPU item.
     case gpu
+    /// The memory pressure item.
     case memoryPressure
+    /// The disk item.
     case disk
+    /// The battery item.
     case battery
+    /// The thermal item.
     case thermal
 
     /// The bar is crowded, so these start hidden. Everything else starts visible.
@@ -47,8 +64,11 @@ public enum MenuBarItem: String, CaseIterable, Codable, Sendable {
 
 /// User configuration. Pure value type; persistence is an infrastructure concern.
 public struct MetricSettings: Equatable, Sendable {
+    /// Whether the CPU item is shown in the menu bar.
     public var showCPU: Bool
+    /// How the CPU item shows its value.
     public var cpuMode: CPUDisplayMode
+    /// Whether the network item is shown in the menu bar.
     public var showNetwork: Bool
     /// Off by default. When on, loopback (lo0) traffic is counted.
     public var includeLoopback: Bool
@@ -73,6 +93,27 @@ public struct MetricSettings: Equatable, Sendable {
     /// Light, dark or follow the system. Applies to the popover and Settings window.
     public var appearance: AppearanceMode
 
+    /**
+     Creates settings. Every parameter has a default.
+
+     The Auto Clean threshold is snapped to a slider stop when it is stored.
+
+     - Parameters:
+       - showCPU: Whether the CPU item is shown. Defaults to true.
+       - cpuMode: How the CPU item shows its value. Defaults to `.percent`.
+       - showNetwork: Whether the network item is shown. Defaults to true.
+       - includeLoopback: Whether loopback (lo0) traffic is counted. Defaults to false.
+       - allowedInterfaces: Interface names to count. Empty counts all active interfaces.
+       - collectorOverrides: Explicit on or off choices for optional collectors. Empty by default.
+       - hiddenBatteryDetails: Battery readings to hide. Empty by default.
+       - hiddenMenuBarItems: Items hidden from the menu bar. Defaults to `MenuBarItem.defaultHidden`.
+       - menuBarPriorities: The priority for each status bar item. Empty means the defaults.
+       - autoCleanEnabled: Whether Auto Clean is on. Defaults to false.
+       - autoCleanThresholdPercent: The used-RAM percentage that triggers Auto Clean. Defaults to 85.
+       - menuBarItemConfigs: The appearance and behaviour of each item. Empty means the defaults.
+       - menuBarOrder: The order of items in the Settings list. Defaults to every item in declaration order.
+       - appearance: Light, dark or system. Defaults to `.system`.
+     */
     public init(
         showCPU: Bool = true,
         cpuMode: CPUDisplayMode = .percent,
@@ -105,21 +146,48 @@ public struct MetricSettings: Equatable, Sendable {
         self.hiddenMenuBarItems = hiddenMenuBarItems
     }
 
+    /**
+     Reports whether a battery reading is shown.
+
+     - Parameter detail: The battery reading to check.
+     - Returns: True unless the user has hidden it.
+     */
     public func isBatteryDetailShown(_ detail: BatteryDetail) -> Bool {
         !hiddenBatteryDetails.contains(detail)
     }
 
+    /**
+     Reports whether an item is shown in the menu bar.
+
+     - Parameter item: The menu bar item to check.
+     - Returns: True unless the user has hidden it.
+     */
     public func isMenuBarItemShown(_ item: MenuBarItem) -> Bool {
         !hiddenMenuBarItems.contains(item)
     }
 
-    /// A collector runs only when the Mac supports it AND the user has not switched it off.
-    /// Unsupported collectors are always off, even if the user once enabled them. That covers
-    /// hardware changes, such as an external display or a disk going away.
+    /**
+     Reports whether an optional collector runs.
+
+     A collector runs only when the Mac supports it AND the user has not switched it off. Unsupported collectors are
+     always off, even if the user once enabled them. That covers hardware changes, such as an external display or a
+     disk going away.
+
+     - Parameters:
+       - kind: The collector to check.
+       - capabilities: What the Mac supports.
+     - Returns: True when the collector is supported and not switched off.
+     */
     public func isCollectorEnabled(_ kind: CollectorKind, capabilities: MetricCapabilities) -> Bool {
         capabilities.supports(kind) && (collectorOverrides[kind] ?? true)
     }
 
+    /**
+     Returns the optional collectors that run.
+
+     - Parameter capabilities: What the Mac supports.
+     - Returns: The collectors that are supported and not switched off.
+     */
     public func enabledCollectors(capabilities: MetricCapabilities) -> Set<CollectorKind> {
         Set(CollectorKind.allCases.filter { isCollectorEnabled($0, capabilities: capabilities) })
     }

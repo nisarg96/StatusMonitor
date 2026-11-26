@@ -1,9 +1,20 @@
 import Darwin
 
-/// Interface counters via getifaddrs (AF_LINK records). Requires no permissions.
+/**
+ Reads per-interface link-layer byte counters with `getifaddrs` (AF_LINK records).
+
+ Requires no permissions. The counters are 32-bit (`if_data`) and wrap, so callers take deltas with wrapping
+ subtraction.
+ */
 public struct GetIfAddrsInterfaceSource: InterfaceCounterSource {
+    /// Creates a source. It holds no state, so instances are interchangeable.
     public init() {}
 
+    /**
+     Reads the counters for every link-layer interface.
+
+     - Returns: One entry per AF_LINK record, in `getifaddrs` order. Empty when `getifaddrs` fails.
+     */
     public func readInterfaces() -> [InterfaceCounters] {
         var head: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&head) == 0, let first = head else { return [] }

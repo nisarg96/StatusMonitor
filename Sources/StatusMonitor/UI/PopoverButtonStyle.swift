@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Popover buttons. Primary is a solid fill; secondary is a white (or dark) fill with a border. Both have radius 6.
 struct PopoverButtonStyle: ButtonStyle {
+    /// True for the solid primary button, false for the bordered secondary one.
     let prominent: Bool
     @Environment(\.isEnabled) private var isEnabled
 

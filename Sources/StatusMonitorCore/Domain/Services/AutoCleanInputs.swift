@@ -26,6 +26,18 @@ public struct AutoCleanInputs: Equatable, Sendable {
     /// Monotonic seconds now.
     public var monotonicNowSeconds: Double = 0
 
+    /**
+     Creates the inputs for one tick.
+
+     The re-arm, pause, cooldown and sustain fields keep their defaults until the caller sets them.
+
+     - Parameters:
+       - enabled: Whether the user turned Auto Clean on.
+       - usedPercent: Used RAM as a percentage of physical RAM, 0...100.
+       - thresholdPercent: The user's threshold.
+       - lastCleanAt: Epoch seconds of the last clean, or nil when none has run.
+       - nowEpoch: The current time, in epoch seconds.
+     */
     public init(
         enabled: Bool,
         usedPercent: Double,

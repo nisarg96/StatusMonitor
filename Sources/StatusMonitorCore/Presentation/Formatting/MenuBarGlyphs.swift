@@ -1,13 +1,26 @@
 import Foundation
 
-/// Fixed-length history of recent values, oldest first. Used for sparklines and bars.
+/**
+ Fixed-length history of recent values, oldest first.
+
+ Used for sparklines and bars. Holds at most `capacity` values.
+ */
 public struct SampleHistory: Equatable, Sendable {
+    /// The maximum number of values kept.
     public static let capacity = 60
 
+    /// The stored values, oldest first.
     public private(set) var values: [Double] = []
 
+    /// Creates an empty history.
     public init() {}
 
+    /**
+     Appends a value, dropping the oldest value once `capacity` is reached.
+
+     - Parameters:
+       - value: The value to record.
+     */
     public mutating func append(_ value: Double) {
         values.append(value)
         if values.count > Self.capacity {
@@ -36,14 +49,48 @@ public enum MenuBarGlyph: Equatable, Sendable {
     case pressure(symbol: String, level: MemoryPressureLevel)
 }
 
-/// Series names for history. Network and disk have two directions, so each gets its own series.
+/**
+ Series names for history.
+
+ Network and disk have two directions, so each gets its own series.
+ */
 public enum HistorySeries: String, CaseIterable, Sendable {
-    case cpu, ram, gpu, networkDown, networkUp, diskRead, diskWrite, temperature
+    /// CPU load, in percent.
+    case cpu
+    /// Used RAM, in percent of physical RAM.
+    case ram
+    /// GPU utilization, in percent.
+    case gpu
+    /// Download rate, in bytes per second.
+    case networkDown
+    /// Upload rate, in bytes per second.
+    case networkUp
+    /// Disk read rate, in bytes per second.
+    case diskRead
+    /// Disk write rate, in bytes per second.
+    case diskWrite
+    /// CPU temperature, in degrees Celsius.
+    case temperature
 }
 
+/// Builds the glyph for a status bar item from the current snapshot.
 public enum MenuBarGlyphBuilder {
-    /// Builds the glyph for one item, or nil when the item has no value yet, so the caller can show its icon alone.
-    /// The renderer for each item and state comes from `MenuBarGlyphTable`.
+    /**
+     Builds the glyph for one item.
+
+     Returns nil when the item has no value yet, so the caller can show its icon alone. Before the first sample the
+     value is not real, so the result is nil. The renderer for each item and state comes from `MenuBarGlyphTable`.
+
+     - Parameters:
+       - item: The status bar item.
+       - snapshot: The latest system snapshot.
+       - config: The item's appearance and alert settings.
+       - history: Recent samples per series, used by the sparkline and bar styles.
+       - physicalMemoryBytes: Physical RAM in bytes, used to turn used RAM into a percentage.
+       - ramThresholdPercent: The RAM alert threshold, in percent of physical RAM.
+       - cpuMode: How the CPU item is shown: CPU percent, or used RAM in GB.
+     - Returns: The glyph, or nil when the item has no value yet.
+     */
     public static func glyph(
         for item: MetricItemID,
         snapshot: SystemSnapshot,
@@ -53,7 +100,6 @@ public enum MenuBarGlyphBuilder {
         ramThresholdPercent: Int = AutoCleanThreshold.defaultPercent,
         cpuMode: CPUDisplayMode = .percent
     ) -> MenuBarGlyph? {
-        // Before the first sample the value is not real, so the item shows its icon alone.
         guard snapshot.isSampled else { return nil }
         let inputs = MenuBarGlyphInputs(
             snapshot: snapshot,
@@ -67,7 +113,18 @@ public enum MenuBarGlyphBuilder {
         return MenuBarGlyphTable.renderers[slot]?(inputs)
     }
 
-    /// Whether an item should be hidden right now because its value is idle. Only applies when the user asked for it.
+    /**
+     Returns whether an item should be hidden right now because its value is idle.
+
+     Only network and disk can be idle, and only when the user asked for it.
+
+     - Parameters:
+       - item: The status bar item.
+       - snapshot: The latest system snapshot.
+       - config: The item's config. `hideWhenIdle` turns the behaviour on, and `idleBelow` is the threshold in bytes
+         per second.
+     - Returns: True when `hideWhenIdle` is on and the item's rate is below `idleBelow`.
+     */
     public static func isIdle(_ item: MetricItemID, snapshot: SystemSnapshot, config: MenuBarItemConfig) -> Bool {
         guard config.hideWhenIdle else { return false }
         switch item {

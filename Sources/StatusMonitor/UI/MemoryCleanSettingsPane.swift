@@ -1,10 +1,14 @@
 import StatusMonitorCore
 import SwiftUI
 
-/// The Memory Clean page: the note, the administrator approval, Auto Clean with its threshold, the two clean cards,
-/// and the recent cleans.
+/**
+ The Memory Clean page: the note, the administrator approval, Auto Clean with its threshold, the two clean cards,
+ and the recent cleans.
+ */
 struct MemoryCleanSettingsPane: View {
+    /// The settings, which hold the Auto Clean switch and threshold.
     @ObservedObject var settings: SettingsViewModel
+    /// The purge approval state shown by the approval row.
     @ObservedObject var purge: PurgePermissionViewModel
     /// Nil until the clean use case is wired in. Then the cards show no Clean now button and no list.
     let memoryClean: MemoryCleanViewModel?

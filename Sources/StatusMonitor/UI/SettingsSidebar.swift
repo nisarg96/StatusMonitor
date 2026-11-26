@@ -3,7 +3,9 @@ import SwiftUI
 
 /// The Settings sidebar: the live panes, then a greyed "Coming later" group that cannot be selected.
 struct SettingsSidebar: View {
+    /// The pane that is currently selected.
     let selection: SettingsPane
+    /// Called with the tapped row.
     let onSelect: (SettingsSidebarItem) -> Void
 
     var body: some View {
