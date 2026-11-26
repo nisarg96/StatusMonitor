@@ -89,6 +89,7 @@ public enum MenuBarGlyphBuilder {
        - physicalMemoryBytes: Physical RAM in bytes, used to turn used RAM into a percentage.
        - ramThresholdPercent: The RAM alert threshold, in percent of physical RAM.
        - cpuMode: How the CPU item is shown: CPU percent, or used RAM in GB.
+       - networkDirections: The network directions that are shown. Defaults to both.
      - Returns: The glyph, or nil when the item has no value yet.
      */
     public static func glyph(
@@ -98,7 +99,8 @@ public enum MenuBarGlyphBuilder {
         history: [HistorySeries: SampleHistory],
         physicalMemoryBytes: UInt64,
         ramThresholdPercent: Int = AutoCleanThreshold.defaultPercent,
-        cpuMode: CPUDisplayMode = .percent
+        cpuMode: CPUDisplayMode = .percent,
+        networkDirections: [NetworkDirection] = NetworkDirection.allCases
     ) -> MenuBarGlyph? {
         guard snapshot.isSampled else { return nil }
         let inputs = MenuBarGlyphInputs(
@@ -107,7 +109,8 @@ public enum MenuBarGlyphBuilder {
             history: history,
             physicalMemoryBytes: physicalMemoryBytes,
             ramThresholdPercent: ramThresholdPercent,
-            cpuMode: cpuMode
+            cpuMode: cpuMode,
+            networkDirections: networkDirections
         )
         let slot = MenuBarGlyphTable.slot(for: item, cpuMode: cpuMode)
         return MenuBarGlyphTable.renderers[slot]?(inputs)
@@ -123,12 +126,20 @@ public enum MenuBarGlyphBuilder {
        - snapshot: The latest system snapshot.
        - config: The item's config. `hideWhenIdle` turns the behaviour on, and `idleBelow` is the threshold in bytes
          per second.
+       - networkDirections: The network directions that are shown. Only these count toward idle. Defaults to both.
      - Returns: True when `hideWhenIdle` is on and the item's rate is below `idleBelow`.
      */
-    public static func isIdle(_ item: MetricItemID, snapshot: SystemSnapshot, config: MenuBarItemConfig) -> Bool {
+    public static func isIdle(
+        _ item: MetricItemID,
+        snapshot: SystemSnapshot,
+        config: MenuBarItemConfig,
+        networkDirections: [NetworkDirection] = NetworkDirection.allCases
+    ) -> Bool {
         guard config.hideWhenIdle else { return false }
         switch item {
-        case .network: return max(snapshot.downBps, snapshot.upBps) < config.idleBelow
+        case .network:
+            let rates = networkDirections.map { $0.rate(upBps: snapshot.upBps, downBps: snapshot.downBps) }
+            return !rates.isEmpty && (rates.max() ?? 0) < config.idleBelow
         case .disk:
             guard let disk = snapshot.disk else { return false }
             return max(disk.readBps, disk.writeBps) < config.idleBelow

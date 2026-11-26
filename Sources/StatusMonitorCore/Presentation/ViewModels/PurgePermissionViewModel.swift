@@ -23,7 +23,7 @@ public final class PurgePermissionViewModel: ObservableObject {
     public typealias Runner = (_ work: @escaping () -> State, _ done: @escaping (State) -> Void) -> Void
 
     /// The current state of the row.
-    @Published public private(set) var state: State = .notInstalled
+    @Published public private(set) var state: State
 
     private let service: PurgePermissionService
     private let userName: String
@@ -44,14 +44,18 @@ public final class PurgePermissionViewModel: ObservableObject {
        - service: Checks and changes the purge permission.
        - userName: The user name passed to `install(forUser:)`.
        - runner: Runs the check or change off the main thread. Defaults to `backgroundRunner`.
+       - initialState: The state the row starts in. Defaults to `.notInstalled`. The snapshot passes the result of a
+         read-only check, so the row shows the real state without a refresh.
      */
     public init(
         service: PurgePermissionService, userName: String,
-        runner: @escaping Runner = PurgePermissionViewModel.backgroundRunner
+        runner: @escaping Runner = PurgePermissionViewModel.backgroundRunner,
+        initialState: State = .notInstalled
     ) {
         self.service = service
         self.userName = userName
         self.runner = runner
+        self.state = initialState
     }
 
     /// The default runner: runs `work` on a global background queue and delivers its result on the main queue.

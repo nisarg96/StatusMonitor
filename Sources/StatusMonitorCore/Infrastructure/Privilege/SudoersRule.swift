@@ -1,7 +1,7 @@
 import Foundation
 
 /**
- Builds the sudoers rule that the installer writes, and checks user names for it.
+ Builds the sudoers rule that the installer writes.
 
  Pure, so the exact text is testable. The rule permits one command with no arguments, with NOPASSWD,
  for the named user only.
@@ -22,18 +22,5 @@ public enum SudoersRule {
      */
     public static func line(forUser user: String) -> String {
         "\(user) ALL=(root) NOPASSWD: /usr/sbin/purge \"\""
-    }
-
-    /**
-     Reports whether a user name is non-empty and uses only letters, digits, `_`, `-` and `.`.
-
-     Letters and digits here include non-ASCII characters. The installer applies the stricter ASCII-only check.
-
-     - Parameters:
-       - user: The candidate login name.
-     - Returns: True when the name is safe to place in a sudoers rule.
-     */
-    public static func isSafeUserName(_ user: String) -> Bool {
-        !user.isEmpty && user.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" || $0 == "-" || $0 == "." }
     }
 }

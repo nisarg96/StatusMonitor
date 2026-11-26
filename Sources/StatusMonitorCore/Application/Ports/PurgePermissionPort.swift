@@ -36,8 +36,6 @@ public protocol PurgePermissionService: AnyObject {
 public enum PurgePermissionError: LocalizedError, Equatable {
     /// The user name contains characters that are not allowed in a sudoers rule.
     case unsafeUserName
-    /// `visudo` rejected the rule, so it was not installed. The associated value is the `visudo` output.
-    case validationFailed(String)
     /// The administrator prompt was cancelled. Nothing was changed.
     case cancelled
     /// The system refused the change. The associated value is the output of the failed command.
@@ -48,8 +46,6 @@ public enum PurgePermissionError: LocalizedError, Equatable {
         switch self {
         case .unsafeUserName:
             return "The user name contains characters that are not allowed in a sudoers rule."
-        case .validationFailed(let detail):
-            return "The sudoers rule did not pass visudo, so it was not installed. \(detail)"
         case .cancelled:
             return "Cancelled. No change was made."
         case .commandFailed(let detail):

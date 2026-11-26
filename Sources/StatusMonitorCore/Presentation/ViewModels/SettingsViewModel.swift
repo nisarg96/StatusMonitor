@@ -64,6 +64,10 @@ public final class SettingsViewModel: ObservableObject {
     public func setCPUMode(_ value: CPUDisplayMode) { update { $0.cpuMode = value } }
     /// Shows or hides the network readout.
     public func setShowNetwork(_ value: Bool) { update { $0.showNetwork = value } }
+    /// Shows or hides the download rate on the network item and card.
+    public func setShowDownload(_ value: Bool) { update { $0.showDownload = value } }
+    /// Shows or hides the upload rate on the network item and card.
+    public func setShowUpload(_ value: Bool) { update { $0.showUpload = value } }
     /// Turns loopback (lo0) traffic in or out of the network totals.
     public func setIncludeLoopback(_ value: Bool) { update { $0.includeLoopback = value } }
 

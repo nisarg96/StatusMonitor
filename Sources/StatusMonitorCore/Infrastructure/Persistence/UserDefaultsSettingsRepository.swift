@@ -11,6 +11,8 @@ public final class UserDefaultsSettingsRepository: SettingsRepository {
         static let showCPU = "showCPU"
         static let cpuMode = "cpuMode"
         static let showNetwork = "showNetwork"
+        static let showDownload = "showDownload"
+        static let showUpload = "showUpload"
         static let includeLoopback = "includeLoopback"
         static let allowedInterfaces = "allowedInterfaces"
         static let collectorOverrides = "collectorOverrides"
@@ -67,6 +69,8 @@ public final class UserDefaultsSettingsRepository: SettingsRepository {
             showCPU: defaults.object(forKey: Key.showCPU) as? Bool ?? true,
             cpuMode: CPUDisplayMode(rawValue: defaults.string(forKey: Key.cpuMode) ?? "") ?? .percent,
             showNetwork: defaults.object(forKey: Key.showNetwork) as? Bool ?? true,
+            showDownload: defaults.object(forKey: Key.showDownload) as? Bool ?? true,
+            showUpload: defaults.object(forKey: Key.showUpload) as? Bool ?? true,
             includeLoopback: defaults.bool(forKey: Key.includeLoopback),
             allowedInterfaces: Set(defaults.stringArray(forKey: Key.allowedInterfaces) ?? []),
             collectorOverrides: overrides,
@@ -92,6 +96,8 @@ public final class UserDefaultsSettingsRepository: SettingsRepository {
         defaults.set(settings.showCPU, forKey: Key.showCPU)
         defaults.set(settings.cpuMode.rawValue, forKey: Key.cpuMode)
         defaults.set(settings.showNetwork, forKey: Key.showNetwork)
+        defaults.set(settings.showDownload, forKey: Key.showDownload)
+        defaults.set(settings.showUpload, forKey: Key.showUpload)
         defaults.set(settings.includeLoopback, forKey: Key.includeLoopback)
         defaults.set(settings.allowedInterfaces.sorted(), forKey: Key.allowedInterfaces)
 

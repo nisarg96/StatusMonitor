@@ -70,6 +70,10 @@ public struct MetricSettings: Equatable, Sendable {
     public var cpuMode: CPUDisplayMode
     /// Whether the network item is shown in the menu bar.
     public var showNetwork: Bool
+    /// Whether the download rate is shown on the network item and card. On by default.
+    public var showDownload: Bool
+    /// Whether the upload rate is shown on the network item and card. On by default.
+    public var showUpload: Bool
     /// Off by default. When on, loopback (lo0) traffic is counted.
     public var includeLoopback: Bool
     /// Interface names to count. Empty = all active interfaces.
@@ -102,6 +106,8 @@ public struct MetricSettings: Equatable, Sendable {
        - showCPU: Whether the CPU item is shown. Defaults to true.
        - cpuMode: How the CPU item shows its value. Defaults to `.percent`.
        - showNetwork: Whether the network item is shown. Defaults to true.
+       - showDownload: Whether the download rate is shown. Defaults to true.
+       - showUpload: Whether the upload rate is shown. Defaults to true.
        - includeLoopback: Whether loopback (lo0) traffic is counted. Defaults to false.
        - allowedInterfaces: Interface names to count. Empty counts all active interfaces.
        - collectorOverrides: Explicit on or off choices for optional collectors. Empty by default.
@@ -118,6 +124,8 @@ public struct MetricSettings: Equatable, Sendable {
         showCPU: Bool = true,
         cpuMode: CPUDisplayMode = .percent,
         showNetwork: Bool = true,
+        showDownload: Bool = true,
+        showUpload: Bool = true,
         includeLoopback: Bool = false,
         allowedInterfaces: Set<String> = [],
         collectorOverrides: [CollectorKind: Bool] = [:],
@@ -139,6 +147,8 @@ public struct MetricSettings: Equatable, Sendable {
         self.showCPU = showCPU
         self.cpuMode = cpuMode
         self.showNetwork = showNetwork
+        self.showDownload = showDownload
+        self.showUpload = showUpload
         self.includeLoopback = includeLoopback
         self.allowedInterfaces = allowedInterfaces
         self.collectorOverrides = collectorOverrides

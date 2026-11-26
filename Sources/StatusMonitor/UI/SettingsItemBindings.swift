@@ -170,6 +170,24 @@ struct SettingsItemBindings {
     }
 
     /**
+     Returns a binding to whether one network direction is shown on the Network item and card.
+
+     - Parameter direction: The direction, download or upload.
+     - Returns: The binding.
+     */
+    func networkDirection(_ direction: NetworkDirection) -> Binding<Bool> {
+        Binding(
+            get: { direction == .download ? settings.settings.showDownload : settings.settings.showUpload },
+            set: { value in
+                switch direction {
+                case .download: settings.setShowDownload(value)
+                case .upload: settings.setShowUpload(value)
+                }
+            }
+        )
+    }
+
+    /**
      Returns a binding to the CPU display mode, which picks between CPU percent and used RAM.
 
      - Returns: The binding.

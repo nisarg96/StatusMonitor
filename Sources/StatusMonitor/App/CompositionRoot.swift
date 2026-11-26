@@ -46,13 +46,32 @@ final class CompositionRoot {
     }
 
     /**
+     Returns the purge row's starting state.
+
+     In snapshot mode this runs the read-only check once, so the row shows the real state. The check runs `sudo -n -l`,
+     which never prompts and never runs purge. It blocks, which is fine because no window is open. Outside snapshot mode
+     the check is not run, and the row starts as not installed and refreshes when it appears.
+
+     - Parameters:
+       - service: The purge permission service. Only its read-only check is used here.
+       - snapshot: True for the `--snapshot` developer flag.
+     - Returns: `.installed` or `.notInstalled`.
+     */
+    static func purgeInitialState(
+        _ service: PurgePermissionService, snapshot: Bool
+    ) -> PurgePermissionViewModel.State {
+        snapshot && service.isInstalled() ? .installed : .notInstalled
+    }
+
+    /**
      Wires the view models, adapters and background work for the app or for a snapshot.
 
      Auto Clean runs the same Standard Clean that the user can press, triggered by the threshold. One executor is
      shared by Auto Clean and the installer, so an install is seen at once through their common availability cache.
 
      In snapshot mode no Auto Clean coordinator is built, so a refresh cannot start a clean. The purge runner also does
-     nothing, so the purge row's onAppear check never reaches the installer.
+     nothing, so the purge row's onAppear check never reaches the installer. Instead, the snapshot reads the purge state
+     once, with the read-only check, before the row is built.
 
      The helper is checked at startup, off the main thread, so the first due tick already has an answer. The capability
      probe may open the SMC and enumerate sensors, so it also runs off the main thread, and its result is applied back
@@ -96,12 +115,12 @@ final class CompositionRoot {
         self.settings = settings
         self.monitor = monitor
         self.remediationStore = remediationStore
+        let purgeService = SudoersInstaller(executor: purgeExecutor)
         let purgeRunner: PurgePermissionViewModel.Runner = snapshot
             ? { _, _ in } : PurgePermissionViewModel.backgroundRunner
         self.purge = PurgePermissionViewModel(
-            service: SudoersInstaller(executor: purgeExecutor),
-            userName: NSUserName(),
-            runner: purgeRunner
+            service: purgeService, userName: NSUserName(), runner: purgeRunner,
+            initialState: Self.purgeInitialState(purgeService, snapshot: snapshot)
         )
         self.memoryClean = MemoryCleanViewModel(clean: Self.manualClean(cleanUseCase))
 
