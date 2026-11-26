@@ -20,6 +20,8 @@ struct PopoverView: View {
     let openSettings: () -> Void
     /// Memory Clean. Nil leaves the clean buttons disabled until the app passes the view model in.
     var memoryClean: MemoryCleanViewModel?
+    /// The speed test shown on the Network card. Nil hides its controls.
+    var speedTest: SpeedTestViewModel?
 
     /// Real physical RAM, so the RAM total is never a sample value.
     private let physicalBytes: UInt64 = ProcessInfo.processInfo.physicalMemory
@@ -177,7 +179,8 @@ struct PopoverView: View {
                     today: monitor.dailyTraffic,
                     directions: NetworkDirection.shown(in: metrics),
                     shown: metrics.showNetwork,
-                    onToggle: { settings.setShowNetwork($0) }
+                    onToggle: { settings.setShowNetwork($0) },
+                    speedTest: speedTest
                 )
             } else {
                 placeholderCard("Network", ids: ["down", "up"], metrics: metrics,

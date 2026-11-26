@@ -23,7 +23,8 @@ CPU 8%  ↓ 2.1 MB/s  ↑ 0.4 MB/s
 ## Features
 
 - **Live menu bar readouts** for CPU, RAM, network, disk, GPU, memory pressure, battery, and temperature. Only metrics your Mac can provide are shown.
-- **Popover with live details** in sections for CPU and memory, GPU, memory pressure, disk I/O, battery, network, and temperature and fans. Each section has its own toggles.
+- **Popover with live details.** Each card matches an item you have on the menu bar, so turning an item off in Settings also removes its card. Cards cover CPU and memory, GPU, memory pressure, disk I/O, battery, network, and temperature and fans.
+- **Speed test** on demand: press Run to measure download and upload in Mbit/s, latency and jitter. Nothing runs on its own. Packet loss is not measured yet.
 - **Battery details** on request: charge, health, cycle count, power source, Low Power Mode, and time remaining.
 - **Memory Clean** frees inactive memory using macOS's built-in `purge` command. It can run a Standard Clean or an Extreme Clean, and an **Auto Clean** can run it when used RAM passes a threshold you set.
 - **Settings window** for the menu bar layout, General options, and Memory Clean.
@@ -72,7 +73,13 @@ Memory Clean frees inactive memory by running `/usr/sbin/purge`. Because that co
 ## Permissions and privacy
 
 - StatusMonitor requests **no** Accessibility, Screen Recording, Location, or other privacy permissions.
-- Metrics come from `host_statistics(64)`, `getifaddrs`, IOKit, and the System Management Controller, all read locally. Nothing is sent over the network.
+- Metrics come from `host_statistics(64)`, `getifaddrs`, IOKit, and the System Management Controller, all read locally. The speed test is the only feature that makes a network request.
+- Nothing leaves the Mac unless you press **Run speed test**.
+- When you press Run, the app contacts `speed.cloudflare.com`. It also sends small test requests to the same host. Packet loss is not measured yet.
+- Cloudflare receives your IP address, the time, and the amount of traffic. Cloudflare's privacy policy applies to that data.
+- The payloads are random bytes. The app does not upload your results or any identifiers.
+- Speed-test traffic counts toward the network readout and the daily traffic total, because the system counters cannot tell it apart.
+- The app never starts a test on its own.
 - The only privileged action is the optional Memory Clean rule described above.
 
 ## Diagnostics
@@ -81,6 +88,12 @@ Print the same text the menu bar shows, every 2 seconds, without opening the GUI
 
 ```sh
 build/StatusMonitor.app/Contents/MacOS/StatusMonitor --dump-samples 10
+```
+
+Run one speed test and print the result. It contacts Cloudflare, as described under Permissions and privacy:
+
+```sh
+build/StatusMonitor.app/Contents/MacOS/StatusMonitor --speed-test
 ```
 
 Re-render the README screenshots offscreen, without opening the status item or any window:

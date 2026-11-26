@@ -25,6 +25,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let monitor: MonitorViewModel
     private let purge: PurgePermissionViewModel
     private let memoryClean: MemoryCleanViewModel
+    private let speedTest: SpeedTestViewModel
     private let settingsWindow: SettingsWindowController
     private var cancellables = Set<AnyCancellable>()
 
@@ -35,19 +36,22 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
      - Parameter monitor: The monitor whose visible items and glyphs are drawn.
      - Parameter purge: The purge approval state, passed to the Settings window.
      - Parameter memoryClean: The clean view model, passed to the popovers and the Settings window.
+     - Parameter speedTest: The speed test view model, passed to the popovers and the Settings window.
      */
     init(
         settings: SettingsViewModel,
         monitor: MonitorViewModel,
         purge: PurgePermissionViewModel,
-        memoryClean: MemoryCleanViewModel
+        memoryClean: MemoryCleanViewModel,
+        speedTest: SpeedTestViewModel
     ) {
         self.settings = settings
         self.monitor = monitor
         self.purge = purge
         self.memoryClean = memoryClean
+        self.speedTest = speedTest
         self.settingsWindow = SettingsWindowController(
-            settings: settings, monitor: monitor, purge: purge, memoryClean: memoryClean
+            settings: settings, monitor: monitor, purge: purge, memoryClean: memoryClean, speedTest: speedTest
         )
         super.init()
 
@@ -172,7 +176,8 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             rootView: PopoverView(
                 settings: settings, monitor: monitor, only: only,
                 openSettings: { [weak self] in self?.settingsWindow.show() },
-                memoryClean: memoryClean
+                memoryClean: memoryClean,
+                speedTest: speedTest
             )
         )
         hosting.sizingOptions = [.preferredContentSize]

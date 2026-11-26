@@ -50,3 +50,13 @@ The statuses below are the results recorded on the test machine. The latest code
 - A real Standard or Extreme clean. The rule has not been installed on the test machine, so the measured deltas have not been observed.
 - Whether `memory_pressure -l warn` needs root. It runs without `sudo` in the code, and this has not been verified.
 - Any signed helper (SMJobBless or SMAppService). The test machine has 0 valid code-signing identities, so these are out of scope.
+
+## Speed test
+
+- Packet loss is shown as "not measured". It needs ICMP, which is not yet verified on this Mac.
+- Results depend on the system proxy, VPN, and the server. Measurements through a VPN or proxy show that path, not the line.
+- The test uses 6 parallel streams. Warm-up ends when the rate settles, or after 3 s. The measured window is 10 s. A run counts up to 200 MB of download and 50 MB of upload inside the window.
+- Low Data Mode and expensive or constrained networks are not checked. The app does not ask before a run.
+- Cloudflare's terms for third-party use of speed.cloudflare.com are not confirmed. A written permission is pending.
+- The endpoints are not documented as a public API, so they may change.
+- Live behaviour (real throughput, latency, the reused-connection filter) has not been checked against the live service yet.

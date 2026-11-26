@@ -2,6 +2,10 @@ import AppKit
 import Foundation
 import StatusMonitorCore
 
+if SpeedTestArguments.isRequested(CommandLine.arguments) {
+    exit(SpeedTestCommand.run(port: CompositionRoot.speedTestPort()))
+}
+
 switch DumpSamplesArguments.parse(CommandLine.arguments) {
 case .success(nil):
     break

@@ -18,6 +18,8 @@ final class CompositionRoot {
     let memoryClean: MemoryCleanViewModel
     /// Stored clean state, including the launch-time purge prompt's "Not now" choice.
     let remediationStore: UserDefaultsRemediationStore
+    /// The speed test state, shared by the popover's Network card and the Settings Network section.
+    let speedTest: SpeedTestViewModel
 
     /**
      Creates the metric sources and settings for the headless `--dump-samples` mode.
@@ -31,6 +33,15 @@ final class CompositionRoot {
         defaults: UserDefaults = .standard
     ) -> (sources: MetricSources, settings: MetricSettings) {
         (LiveMetricSources.make(), UserDefaultsSettingsRepository(defaults: defaults).load())
+    }
+
+    /**
+     Creates the speed test port for the headless `--speed-test` diagnostic.
+
+     - Returns: The Cloudflare speed test client. It is only called when the diagnostic runs.
+     */
+    nonisolated static func speedTestPort() -> SpeedTestPort {
+        CloudflareSpeedTestClient()
     }
 
     /**
@@ -123,7 +134,19 @@ final class CompositionRoot {
             initialState: Self.purgeInitialState(purgeService, snapshot: snapshot)
         )
         self.memoryClean = MemoryCleanViewModel(clean: Self.manualClean(cleanUseCase))
+        let speedTestPort: SpeedTestPort = snapshot ? InactiveSpeedTestPort() : CloudflareSpeedTestClient()
+        self.speedTest = SpeedTestViewModel(port: speedTestPort, clock: SystemMonotonicClock())
+        Self.startCapabilityProbe(sources: sources, monitor: monitor)
+    }
 
+    /**
+     Runs the capability probe off the main thread and applies its result to the monitor on the main thread.
+
+     - Parameters:
+       - sources: The metric sources the probe reads from.
+       - monitor: The monitor that receives the capabilities.
+     */
+    private static func startCapabilityProbe(sources: MetricSources, monitor: MonitorViewModel) {
         let probe = CapabilityProbe(sources: sources)
         DispatchQueue.global(qos: .utility).async {
             let capabilities = probe.run()

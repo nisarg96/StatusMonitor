@@ -9,6 +9,8 @@ struct SettingsMenuBarItemsPane: View {
     @ObservedObject var monitor: MonitorViewModel
     /// The selected pane and menu bar item.
     @ObservedObject var navigation: SettingsNavigation
+    /// The speed test shown on the Network item's detail. Nil hides its controls.
+    var speedTest: SpeedTestViewModel?
 
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
@@ -46,7 +48,7 @@ struct SettingsMenuBarItemsPane: View {
     @ViewBuilder
     private var detail: some View {
         if let item = navigation.selected {
-            SettingsItemDetail(item: item, settings: settings, monitor: monitor)
+            SettingsItemDetail(item: item, settings: settings, monitor: monitor, speedTest: speedTest)
                 .id(item)
         } else {
             Text("Select an item to configure it.")

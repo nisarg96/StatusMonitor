@@ -22,6 +22,8 @@ struct PopoverNetworkSection: View {
     let shown: Bool
     /// Called with the new visibility when the section's checkbox changes.
     let onToggle: (Bool) -> Void
+    /// The speed test. Nil hides the speed test controls.
+    let speedTest: SpeedTestViewModel?
 
     var body: some View {
         PopoverSectionCard(title: "Network", shown: shown, onToggle: onToggle) {
@@ -48,6 +50,9 @@ struct PopoverNetworkSection: View {
                     Text(line)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(PopoverPalette.secondaryText)
+                }
+                if let speedTest {
+                    SpeedTestPanel(model: speedTest)
                 }
             }
         }
